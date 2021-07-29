@@ -9,6 +9,8 @@
   using a local editor
   or add dependencies to your project 
   from within your julia session, things will just work.
+  Julia REPL history will also transfer between local
+  julia and julia_pod sessions.
 
 The point of this, beyond making it easier to use a k8s cluster,
 is that your dev env now closely resembles a 
