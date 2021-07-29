@@ -18,11 +18,9 @@ Pkg.add("PackageCompiler")
 using PackageCompiler, UUIDs
 
 function main()
-    packages = [Symbol(k) for k in keys(project.dependencies)]
-    # exclude dependencies that are being developed
-    exclude = [Symbol(pi.name) for pi in values(Pkg.dependencies()) if !pi.is_tracking_registry]
+    packages = [Symbol(k) for k in keys(Pkg.project().dependencies)]
     # exclude some packages that can make sysimage creation or usage fail.
-    foreach(d -> push!(exclude, d), [:Revise, :PackageCompiler, :K8sClusterManagers])
+    exclude = [:Revise, :PackageCompiler, :K8sClusterManagers]
     println("excluding $exclude")
     packages = setdiff(packages, exclude)
     println("Creating sys image with deps being tracked from a registry:")

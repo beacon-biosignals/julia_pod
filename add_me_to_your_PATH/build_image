@@ -31,8 +31,6 @@ bail() {
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-bash $SCRIPT_DIR/tight_deps.sh
-
 [[ -z ${IMAGE_REPO} ]] && {
     bail "IMAGE_REPO env variable must be set, add it to $SCRIPT_DIR/accounts.sh"
 }
@@ -78,12 +76,11 @@ bash $SCRIPT_DIR/tight_deps.sh
 mkdir -p dev
 
 VERSIONS_TAG="cuda-${CUDA_VERSION}_julia-${JULIA_VERSION}"
-SYSIMAGE_DEPS_SHA="sysimage-$(sha1sum TightProject.toml | head -c7)"
 DEPS_SHA="precompiled-$(sha1sum Project.toml Manifest.toml | sha1sum | head -c7)"
 
 # CACHE TAGs, designed to only change if cache images change (can we get a hash from the image itself instead?)
 BASE_IMAGE_CACHE="${IMAGE_REPO}:baseimage_${VERSIONS_TAG}"
-SYSIMAGE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_${SYSIMAGE_DEPS_SHA}"
+SYSIMAGE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_sysimage"
 PRECOMPILE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_${DEPS_SHA}"
 
 DOCKER_SOURCE_HASH=$(find . -type f \( -exec sha1sum "$PWD"/{} \; \) | grep -v 'driver-' | sort -z | sha1sum | head -c7)
