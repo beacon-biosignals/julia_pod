@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+
+set -e
+
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[0;33m'
+cyan='\033[0;36m'
+reset='\033[0m'
+
+log() {
+    echo -e "\n${cyan}$*${reset}" >&2
+}
+
+success() {
+    echo -e "\n${green}$*${reset}" >&2
+}
+
+error() {
+    echo -e "\n${red}$*${reset}" >&2
+}
+
+warn() {
+    echo -e "\n${yellow}$*${reset}" >&2
+}
+
+bail() {
+    error "$@"
+    exit 1
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+bash $SCRIPT_DIR/tight_deps.sh
+
+[[ -z ${IMAGE_REPO} ]] && {
+    bail "IMAGE_REPO env variable must be set, add it to $SCRIPT_DIR/accounts.sh"
+}
+
+[[ -z "$GITHUB_TOKEN" ]] && {
+    warn "GITHUB_TOKEN env variable not set, private github repos will not be accessible."
+    GITHUB_TOKEN=""
+}
+
+[[ -f Project.toml ]] || {
+    bail "no Project.toml found in $PWD"
+}
+
+[[ -f Manifest.toml ]] || {
+    bail "no Manifest.toml found in $PWD"
+}
+
+[[ -d src ]] || {
+    bail "no src/ found in $PWD"
+}
+
+[[ -f Dockerfile ]] || {
+    warn "!!! no Dockerfile found in ${PWD}, copying ${SCRIPT_DIR}/Dockerfile.template"
+    cp "${SCRIPT_DIR}/Dockerfile.template" Dockerfile
+}
+
+[[ -f sysimage.jl ]] || {
+    warn "!!! no sysimage.jl found in ${PWD}, copying ${SCRIPT_DIR}/sysimage.jl"
+    cp "${SCRIPT_DIR}/sysimage.jl" .
+}
+
+[[ -z "${JULIA_VERSION}" ]] && {
+    JULIA_VERSION=1.6
+    log "JULIA_VERSION environment variable not set, defaulting to ${JULIA_VERSION}"
+}
+
+[[ -z "${CUDA_VERSION}" ]] && {
+    CUDA_VERSION=11.2.0
+    log "CUDA_VERSION environment variable not set, defaulting to ${CUDA_VERSION}"
+}
+
+# Dockerfile copies dev/ to support `]dev --local` dependencies, make empty one if not there
+mkdir -p dev
+
+VERSIONS_TAG="cuda-${CUDA_VERSION}_julia-${JULIA_VERSION}"
+SYSIMAGE_DEPS_SHA="sysimage-$(sha1sum TightProject.toml | head -c7)"
+DEPS_SHA="precompiled-$(sha1sum Project.toml Manifest.toml | sha1sum | head -c7)"
+
+# CACHE TAGs, designed to only change if cache images change (can we get a hash from the image itself instead?)
+BASE_IMAGE_CACHE="${IMAGE_REPO}:baseimage_${VERSIONS_TAG}"
+SYSIMAGE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_${SYSIMAGE_DEPS_SHA}"
+PRECOMPILE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_${DEPS_SHA}"
+
+DOCKER_SOURCE_HASH=$(find . -type f \( -exec sha1sum "$PWD"/{} \; \) | grep -v 'driver-' | sort -z | sha1sum | head -c7)
+GIT_REPO=$(git config --get remote.origin.url | grep -o '[^:/]*$' | head -c-5)
+GIT_COMMIT=$(git rev-parse --short HEAD)
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD | tr "/" "-")
+
+GIT_INFO="${GIT_REPO}_${GIT_BRANCH}"
+
+# IMAGE TAGs, designed to be relatable to git coordinates
+IMAGE_TAG="${IMAGE_REPO}:${VERSIONS_TAG}_${GIT_INFO}_commit-${GIT_COMMIT}_sha1-${DOCKER_SOURCE_HASH}"
+
+log "building and pushing sysimage-image with ECR_TAG = $BASE_IMAGE_CACHE"
+
+docker buildx build --target base \
+                    --build-arg "JULIA_VERSION=$JULIA_VERSION" \
+                    --build-arg "CUDA_VERSION=$CUDA_VERSION" \
+                    --build-arg "GITHUB_TOKEN=$GITHUB_TOKEN" \
+                    --build-arg "BUILDKIT_INLINE_CACHE=1" \
+                    --cache-from "$BASE_IMAGE_CACHE" \
+                    -t "$BASE_IMAGE_CACHE" --push .
+
+log "building and pushing sysimage-image with ECR_TAG = $SYSIMAGE_IMAGE_CACHE"
+
+docker buildx build --target sysimage-image \
+                    --build-arg "GITHUB_TOKEN=$GITHUB_TOKEN" \
+                    --build-arg "BUILDKIT_INLINE_CACHE=1" \
+                    --build-arg "JULIA_VERSION=$JULIA_VERSION" \
+                    --build-arg "CUDA_VERSION=$CUDA_VERSION" \
+                    --cache-from "$BASE_IMAGE_CACHE" \
+                    --cache-from "$SYSIMAGE_IMAGE_CACHE" \
+                    -t "$SYSIMAGE_IMAGE_CACHE" --push .
+
+log "building and loading precompile-image with TAG = $PRECOMPILE_IMAGE_CACHE"
+
+docker buildx build --target precompile-image \
+                    --build-arg "GITHUB_TOKEN=$GITHUB_TOKEN" \
+                    --build-arg "BUILDKIT_INLINE_CACHE=1" \
+                    --build-arg "JULIA_VERSION=$JULIA_VERSION" \
+                    --build-arg "CUDA_VERSION=$CUDA_VERSION" \
+                    --cache-from "$BASE_IMAGE_CACHE" \
+                    --cache-from "$SYSIMAGE_IMAGE_CACHE" \
+                    --cache-from "$PRECOMPILE_IMAGE_CACHE" \
+                    -t "$PRECOMPILE_IMAGE_CACHE" --push .
+
+log "building and pushing image with ECR_TAG = $IMAGE_TAG"
+
+docker buildx build --build-arg "GITHUB_TOKEN=$GITHUB_TOKEN" \
+                    --build-arg "BUILDKIT_INLINE_CACHE=1" \
+                    --build-arg "JULIA_VERSION=$JULIA_VERSION" \
+                    --build-arg "CUDA_VERSION=$CUDA_VERSION" \
+                    --cache-from "$BASE_IMAGE_CACHE" \
+                    --cache-from "$SYSIMAGE_IMAGE_CACHE" \
+                    --cache-from "$PRECOMPILE_IMAGE_CACHE" \
+                    --cache-from "$IMAGE_TAG" \
+                    -t "$IMAGE_TAG" --push .
+
+log "IMAGE_REPO=$IMAGE_REPO"
+log "BASE_IMAGE_CACHE=$BASE_IMAGE_CACHE"
+log "SYSIMAGE_IMAGE_CACHE=$SYSIMAGE_IMAGE_CACHE"
+log "PRECOMPILE_IMAGE_CACHE=$PRECOMPILE_IMAGE_CACHE"
+log "IMAGE_TAG=$IMAGE_TAG"
+

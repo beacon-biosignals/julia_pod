@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+
+set -e
+
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[0;33m'
+cyan='\033[0;36m'
+reset='\033[0m'
+
+log() {
+    echo -e "\n${cyan}$*${reset}" >&2
+}
+
+success() {
+    echo -e "\n${green}$*${reset}" >&2
+}
+
+error() {
+    echo -e "\n${red}$*${reset}" >&2
+}
+
+warn() {
+    echo -e "\n${yellow}$*${reset}" >&2
+}
+
+bail() {
+    error "$@"
+    exit 1
+}
+
+SYNC=true
+nargs="$#"
+
+# parse args
+while [ -n "$*" ]; do
+    if [ "$1" = "--no-sync" ]; then
+        SYNC=false
+    elif [[ "$1" == --image=* ]]; then
+        IMAGE_TAG_ARG=$(echo $1 | cut -c 9-)
+    elif [[ "$1" == --julia=* ]]; then
+        JULIA_COMMAND=$(echo $1 | cut -c 9-)
+    elif [ -n "${args}" ]; then
+        bail "julia_pod expects at most 2 arguments (the option '--no-sync' and a julia string), got ${nargs} args instead"
+    elif [ -n "$1" ]; then
+        args="$1"
+    fi
+    shift
+done
+
+# will we be running `devspace sync`?
+if [ "${SYNC}" = true ]; then
+    log ">> julia_pod will sync local '~/.julia/logs' <-> container '/root/.julia/logs' and local '$PWD' <-> container '/JuliaProject'"
+else
+    log ">> julia_pod will not be syncing local folders!"
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# define cloud account specific ENV vars
+source "$SCRIPT_DIR/accounts.sh"
+
+[[ -z "${KUBERNETES_NAMESPACE}" ]] && {
+    warn "KUBERNETES_NAMESPACE env variable is not set, defaulting to 'default'"
+    warn "(consider setting KUBERNETES_NAMESPACE in $SCRIPT_DIR/accounts.sh)"
+}
+
+[[ -z "${KUBERNETES_SERVICEACCOUNT}" ]] && {
+    warn "KUBERNETES_SERVICEACCOUNT env variable is not set, defaulting to 'default'"
+    warn "(consider setting KUBERNETES_SERVICEACCOUNT in $SCRIPT_DIR/accounts.sh)"
+}
+
+# are we using a prebuilt docker image or building an image from a julia project in pwd?
+if [[ -n ${IMAGE_TAG_ARG} ]]; then
+    IMAGE_TAG=$IMAGE_TAG_ARG
+    log "using docker IMAGE_TAG=${IMAGE_TAG}"
+    RUNID=$IMAGE_TAG
+else
+    # build an image from pwd julia project
+    source "$SCRIPT_DIR/build_image"
+    RUNID=$GIT_INFO
+fi
+
+# append day/time, both for podname quasi uniqueness and human-friendliness
+# sanitize to be valid dns entry
+RUNID="$(echo $RUNID | sed -e 's/[^a-zA-Z0-9]\+/-/g')-$(date +%a%Hh%Mm%S)"
+RUNID="$(echo $RUNID | tr '[:upper:]' '[:lower:]')"
+
+DRIVER_YAML="driver-${RUNID}.yaml"
+
+# give user a chance to customize `driver.yaml.template` if not found in pwd
+[[ -f driver.yaml.template ]] || {
+    warn "!!! no driver.yaml.template found in ${PWD}, copying ${SCRIPT_DIR}/driver.yaml.template"
+    cp "${SCRIPT_DIR}/driver.yaml.template" .
+    while true; do
+        read -p ">>> View/edit newly copied stock driver.yaml.template k8s pod spec before continuing? [yN] " yn
+        case $yn in
+        [Yy]*)
+            $EDITOR driver.yaml.template
+            break
+            ;;
+        *) break ;;
+        esac
+    done
+}
+
+# if `julia_pod` was called with args, replace values in `driver.yaml`
+[[ -n "${JULIA_COMMAND}" ]] || {
+    JULIA_COMMAND='"julia"'
+    [[ -n ${IMAGE_TAG_ARG} ]] || {
+        # we are using image built by julia_pod, which builds a sysimage
+        JULIA_COMMAND='"julia", "--sysimage=/deps.so"'
+    }
+}
+if [ -n "${args}" ]; then
+    # user passed in some julia code to run
+    JULIA_COMMAND="${JULIA_COMMAND}, \"-e\", \"${args}\""
+fi
+JULIA_COMMAND="[${JULIA_COMMAND}]"
+echo $JULIA_COMMAND
+
+# substitute ENV vars into driver.yaml.template > driver.yaml for this run
+log "Generating $DRIVER_YAML" \
+    && IMAGE_TAG=$IMAGE_TAG \
+        RUNID=$RUNID \
+        KUBERNETES_SERVICEACCOUNT=$KUBERNETES_SERVICEACCOUNT \
+        JULIA_COMMAND=$JULIA_COMMAND \
+            envsubst '${IMAGE_TAG} ${RUNID} ${KUBERNETES_SERVICEACCOUNT} ${JULIA_COMMAND}' <driver.yaml.template >$DRIVER_YAML
+
+# launch job
+kubectl apply -f $DRIVER_YAML -n "$KUBERNETES_NAMESPACE"
+
+log "Waiting for job to have active pod..."
+
+until kubectl get "job/$RUNID" -n "$KUBERNETES_NAMESPACE" -o 'jsonpath={..status.active}' | grep '1'; do
+    printf "."
+done
+
+sleep 1
+
+podname=$(kubectl get pods "--selector=job-name=$RUNID" --output=jsonpath='{.items[*].metadata.name}' -n "$KUBERNETES_NAMESPACE")
+
+log "Waiting for pod $podname to be ready..."
+until kubectl wait --for=condition=Ready "pod/$podname" -n "$KUBERNETES_NAMESPACE" --timeout=1s 2>/dev/null; do
+    printf "."
+done
+
+success "==== Pod $podname is RUNNING! ====\n\n"
+
+# if `julia_pod` was called without args, it's an interactive REPL, sync src/ and logs/ folders, attach
+[[ "${SYNC}" = true ]] && {
+    log "# devspace sync local ~/.julia/logs with the container's /root/.julia/logs"
+    touch ~/.julia/logs/repl_history.jl
+    devspace sync -n "$KUBERNETES_NAMESPACE" --pod "$podname" -c driver --initial-sync mirrorLocal --local-path ~/.julia/logs --container-path /root/.julia/logs >/tmp/devspace-$RUNID-julia-logs.log &
+    echo ""
+    log "# devspace sync PWD with the container's /JuliaProject"
+    devspace sync -n "$KUBERNETES_NAMESPACE" --pod "$podname" -c driver --initial-sync mirrorLocal --local-path "$PWD" --container-path /JuliaProject >/tmp/devspace-$RUNID-julia-project.log &
+    echo ""
+}
+
+# drop into REPL
+kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo ""
+
+# REPL session has exited, clean up
+[[ "${SYNC}" = true ]] && {
+    echo ""
+    echo ""
+    log "Detached from pod, killing folder syncs!"
+    echo ""
+
+    # kill background processes
+    trap 'trap - SIGTERM && kill -- -$$' SIGINT SIGTERM EXIT
+}
+
+log "====    ALL DONE    ===="
+log ""
+log "to force deleting job if your cluster is not set up to reap completed jobs with a ttlSecondsAfterFinished:"
+log "kubectl delete job/$RUNID -n $KUBERNETES_NAMESPACE --grace-period=0 --force=true"

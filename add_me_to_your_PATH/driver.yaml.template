@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: ${RUNID}
+spec:
+    ttlSecondsAfterFinished: 10
+    template:
+        spec:
+            serviceAccountName: ${KUBERNETES_SERVICEACCOUNT}
+            restartPolicy: Never
+            containers:
+                - name: driver
+                  image: ${IMAGE_TAG}
+                  resources:
+                      limits:
+                          memory: 16Gi
+                          cpu: 1
+                      requests:
+                          ephemeral-storage: "2Gi"
+                  command: ${JULIA_COMMAND}
+                  stdin: true
+                  tty: true

@@ -1,0 +1,111 @@
+ARG JULIA_VERSION
+ARG CUDA_VERSION
+
+FROM julia:${JULIA_VERSION}-buster as julia-base
+
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04 as base
+
+# ubuntu 20.04 is derived from debian buster
+COPY --from=julia-base /usr/local/julia /usr/local/julia
+
+RUN apt-get update && apt-get install -y curl \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JULIA_PATH /usr/local/julia
+ENV PATH $JULIA_PATH/bin:$PATH
+ENV JULIA_CUDA_USE_BINARYBUILDER="false"
+ENV JULIA_DEBUG CUDA
+ENV CUDA_HOME /usr/local/cuda
+ENV PYTHON ""
+
+# git config to access private repos, if GITHUB_TOKEN is non-empty
+ARG GITHUB_TOKEN
+RUN [[ -z "${GITHUB_TOKEN}"]] || { echo "[url \"https://${GITHUB_TOKEN}:@github.com/\"]" >  /root/.gitconfig; }
+RUN [[ -z "${GITHUB_TOKEN}"]] || { echo "	insteadOf = https://github.com/" >> /root/.gitconfig; }
+
+FROM base as sysimage-image
+
+# Install system dependencies needed to instantiate the environment and build
+# sysimage. Based on Docker's best practices w.r.t. apt-get:
+# https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN julia -e 'using Pkg; Pkg.Registry.add("General")'
+
+# Optionally install a private Registry
+# RUN julia -e 'using Pkg; Pkg.Registry.add(RegistrySpec(name="MyPrivate", url="https://github.com/my-github-org/MyPrivateRegistry.git"))'
+
+# Instantiate the Julia project environment
+COPY TightProject.toml /JuliaProject/Project.toml
+
+RUN julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
+
+COPY sysimage.jl /JuliaProject/sysimage.jl
+RUN julia --project=/JuliaProject -e 'include("/JuliaProject/sysimage.jl")'
+
+
+#####
+##### sysimage stage (above)
+#####
+# The sysimage stage is designed to be invalidated as infrequently as
+# possible while making a sysimage for faster julia load times.
+# In particular, it only depends on 'TightProject.toml'
+# which is the subset of project dependencies that have tight
+# compat bounds, which is also the set of dependencies that
+# will go into the sysimage.
+
+
+FROM sysimage-image as precompile-image
+
+# install Revise and PProf, even if not a dep of project
+RUN julia -e 'using Pkg; Pkg.add("Revise"); Pkg.add("PProf"); Pkg.instantiate()'
+RUN mkdir -p /root/.julia/config
+
+COPY Project.toml Manifest.toml /JuliaProject
+
+# comment out if you don't have any `dev --local` deps
+COPY dev/ /JuliaProject/dev/
+
+RUN julia --project=/JuliaProject --sysimage=/deps.so -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
+
+#####
+##### project initialization stage
+#####
+# By separating this stage out from the previous stages, we achieve nicer cache
+# invalidation behavior, a slimmer final image, and keep the GITHUB_TOKEN out of
+# the build history of the final image (though it can still show up in intermediate
+# layers/history of the `pre-stage` image--EXCEPT here we're explicitly
+# copying it back into the final image so that you can add private deps during
+# your session.)
+#  In particular, changing content in
+# `src/` will invalidate the Docker cache for the stage below but will NOT
+# invalidate the stage above, including the slow sysimage creation step.
+
+FROM base as project
+
+# copy over artifacts generated during the `precompile-image` stage
+COPY --from=precompile-image /JuliaProject/ /JuliaProject/
+COPY --from=precompile-image /root/.julia /root/.julia
+COPY --from=precompile-image /deps.so /deps.so
+
+# contains github token, you may want to remove this file
+# but then adding private deps during julia_pod sessions will not work
+COPY --from=precompile-image /root/.gitconfig /root/.gitconfig
+
+# copy source
+COPY src/ JuliaProject/src/
+
+# final precompilation step
+RUN julia --project=/JuliaProject --sysimage=/deps.so -e 'using Pkg; Pkg.build(); Pkg.precompile()'
+
+ENV JULIA_PROJECT @.
+
+WORKDIR /JuliaProject
+
+# start julia after repl history gets a chance to sync; is there a better way??
+RUN mkdir -p /root/.julia/config
+RUN echo 'n=8; sleep(n); println("done waiting $n secs for logs/repl_history.jl to sync...")' >> /root/.julia/config/startup.jl
+
+CMD julia --sysimage=/deps.so
