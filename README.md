@@ -35,7 +35,7 @@ it is running.
 ##### Prerequisites
 
 - a working `kubectl` configured to connect with a k8s cluster
-- make sure your docker version is `>= 20`, and set up `docker buildx`:
+- make sure your docker version is `>= 20.20.7`, and set up `docker buildx`:
     - `export DOCKER_BUILDKIT=1` and `export DOCKER_CLI_EXPERIMENTAL=enabled` (for example in your .bashrc)
 - make sure your docker is using the `docker` driver and not a `docker-container` driver
   by doing `docker buildx use default` (otherwise re-builds may be slower.)
@@ -44,7 +44,7 @@ it is running.
   (putting this in your shell startup script is generally good idea)
 - if your system doesn't have it already, install `jq` (https://stedolan.github.io/jq/download/)
 
-To install docker version `>= 20`, go to `https://download.docker.com/linux/`,
+To install docker version `>= 20.10.7`, go to `https://download.docker.com/linux/`,
 pick the flavor of linux closest to yours, then go to `x86_64/stable/Packages`
 and download the latest version of all 4 packages
 (`containerd.io`, `docker-ce`, `docker-de-cli`, `docker-ce-rootless-extras`)
@@ -54,15 +54,6 @@ or `sudo dpkg -i /path/to/package.deb`
 
 To install `buildx` on Amazon linux images, follow
 [docker/buildx#132 (comment)](https://github.com/docker/buildx/issues/132#issuecomment-695768757).
-
-It is possible but not recommended to use docker v19,
-but the default `docker` buildx driver in v19 does not support `auto-push`ing,
-so you will need to ask `docker buildx` to use a `docker-container` driver by doing:
-```
-docker buildx create
-docker buildx use <name-output-by-previous-command>
-```
-which will make re-builds slower than using docker >= 20 with the `docker` driver.
 
 Generally, docker's buildx has seen several recent improvements,
 upgrading to a recent version is recommended.
