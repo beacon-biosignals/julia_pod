@@ -84,7 +84,7 @@ fi
 # append day/time, both for podname quasi uniqueness and human-friendliness
 # sanitize to be valid dns entry
 RUNID="$(echo $RUNID | sed -e 's/[^a-zA-Z0-9]\+/-/g')-$(date +%a%Hh%Mm%S)"
-RUNID="$(echo $RUNID | tr '[:upper:]' '[:lower:]')"
+RUNID="$(echo ${RUNID##*(-)} | tr '[:upper:]' '[:lower:]')"
 
 DRIVER_YAML="driver-${RUNID}.yaml"
 
