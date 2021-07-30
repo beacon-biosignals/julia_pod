@@ -49,8 +49,7 @@ RUN julia -e 'using Pkg; Pkg.Registry.add("General")'
 # RUN julia -e 'using Pkg; Pkg.Registry.add(RegistrySpec(name="MyPrivate", url="https://github.com/my-github-org/MyPrivateRegistry.git"))'
 
 # Instantiate the Julia project environment
-COPY --from=pinned-extractor /Project.toml /JuliaProject/Project.toml
-COPY --from=pinned-extractor /Manifest.toml /JuliaProject/Manifest.toml
+COPY --from=pinned-extractor *Project.toml *Manifest.toml /JuliaProject/
 
 RUN julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
 
