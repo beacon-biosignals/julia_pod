@@ -3,7 +3,7 @@ ARG CUDA_VERSION
 
 # Extract Project.toml with pinned deps only + corresponding Manifest.toml
 
-FROM julia:1-buster as pinned-extractor
+FROM julia:${JULIA_VERSION}-buster as pinned-extractor
 
 COPY Project.toml /Project.toml
 COPY Manifest.toml /Manifest.toml
