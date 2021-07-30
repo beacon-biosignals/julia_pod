@@ -137,8 +137,8 @@ time it takes to `using MyProject` your project.
 The convention for inclusion into the sysimage is that any
 project dependency that is **pinned** included,
 unless it is blacklisted as a package known not to work with
-`PackageCompiler.jl`. To add dependency `TheDependency` to the
-sysimage, in a julia REPL `Pkg` mode, do `]pin TheDependency`.
+`PackageCompiler.jl`. To add the dependency `Example` to the
+sysimage, in a julia REPL `Pkg` mode, do `]pin Example`.
 Pinned packages show with a little ⚲ next to them when listed
 with `]status`.
 
