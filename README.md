@@ -145,7 +145,7 @@ with `]status`.
 This convention came about because the package manager `Pkg.jl`
 is not aware of what dependencies are included in the sysimage
 (they are treated as un-versioned dependencies as though they
-were part of the julia std lib, and always take precedence over
+were part of the Julia stdlib, and always take precedence over
 whatever dependencies `Pkg.jl` thinks it has added to the
 project): it is good practice to pin the versions of
 dependencies that are in a sysimage, so that the versions that
