@@ -64,7 +64,7 @@ RUN julia --project=/JuliaProject -e 'include("/JuliaProject/sysimage.jl")'
 #####
 # The sysimage stage is designed to be invalidated as infrequently as
 # possible while making a sysimage for faster julia load times.
-# In particular, it only depends on the 'Project.toml' containing
+# In particular, it only depends on the 'Manifest.toml' containing
 # pinned dependencies only, which by julia_pod convention
 # is the set of dependencies that will go into the sysimage.
 
