@@ -75,8 +75,11 @@ RUN --mount=type=secret,id=github_token \
 FROM sysimage-image as precompile-image
 
 # install Revise and PProf, even if not a dep of project
+ARG ADD_UTILS="true"
 RUN --mount=type=secret,id=github_token \
-    julia -e 'using Pkg; Pkg.add("Revise"); Pkg.add("PProf"); Pkg.instantiate()'
+    if [ "$ADD_UTILS" == "true" ]; then \
+        julia -e 'using Pkg; Pkg.add("Revise"); Pkg.add("PProf"); Pkg.instantiate()'; \
+    fi
 RUN mkdir -p /root/.julia/config
 
 COPY Project.toml Manifest.toml /JuliaProject
