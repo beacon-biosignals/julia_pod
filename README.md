@@ -137,21 +137,25 @@ The default `Dockerfile` used by `julia_pod` is set up to
 time it takes to `using MyProject` your project.
 
 The convention for inclusion into the sysimage is that any
-project dependency with a **tight** compat bound is included,
+project dependency that is **pinned** included,
 unless it is blacklisted as a package known not to work with
-`PackageCompiler.jl`.
+`PackageCompiler.jl`. To add the dependency `Example` to the
+sysimage, in a julia REPL `Pkg` mode, do `]pin Example`.
+Pinned packages show with a little ⚲ next to them when listed
+with `]status`.
 
 This convention came about because the package manager `Pkg.jl`
 is not aware of what dependencies are included in the sysimage
 (they are treated as un-versioned dependencies as though they
-were part of the julia std lib, and always take precedence over
+were part of the Julia stdlib, and always take precedence over
 whatever dependencies `Pkg.jl` thinks it has added to the
-project): it is good practice to place tight bounds on any
-dependencies that are in a sysimage, so that the versions that
-are actually being used match the versions that `Pkg.jl` thinks
-it is working with. This is why we decided to just make the set
-of dependencies that have tight bounds be what gets included
-in sysimages by default.
+project). Pinning the packages that are included in the sysimage 
+ensures that the package versions used by `Pkg.jl` are fixed 
+and cannot be accidentally changed. Without pinning a user
+could change the version of a package via Pkg but find that they
+are still only using the version locked into the sysimage.
+This is why it was decided to use pinned packages to control
+what is built into the sysimage.
 
 
 ##### notebooks

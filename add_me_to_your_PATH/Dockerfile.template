@@ -1,6 +1,17 @@
 ARG JULIA_VERSION
 ARG CUDA_VERSION
 
+# Extract Project.toml with pinned deps only + corresponding Manifest.toml
+
+FROM julia:${JULIA_VERSION}-buster as pinned-extractor
+
+COPY *Project.toml *Manifest.toml .
+
+# Remove all packages that are not pinned or are not a dependency of a pinned package
+RUN julia --project=. -e 'using Pkg;\
+                          pinned = [p.name for p in values(Pkg.dependencies()) if p.is_pinned];\
+                          Pkg.rm([p for p in keys(Pkg.project().dependencies) if p ∉ pinned])'
+
 FROM julia:${JULIA_VERSION}-buster as julia-base
 
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04 as base
@@ -38,7 +49,7 @@ RUN julia -e 'using Pkg; Pkg.Registry.add("General")'
 # RUN julia -e 'using Pkg; Pkg.Registry.add(RegistrySpec(name="MyPrivate", url="https://github.com/my-github-org/MyPrivateRegistry.git"))'
 
 # Instantiate the Julia project environment
-COPY TightProject.toml /JuliaProject/Project.toml
+COPY --from=pinned-extractor *Project.toml *Manifest.toml /JuliaProject/
 
 RUN julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
 
@@ -51,10 +62,9 @@ RUN julia --project=/JuliaProject -e 'include("/JuliaProject/sysimage.jl")'
 #####
 # The sysimage stage is designed to be invalidated as infrequently as
 # possible while making a sysimage for faster julia load times.
-# In particular, it only depends on 'TightProject.toml'
-# which is the subset of project dependencies that have tight
-# compat bounds, which is also the set of dependencies that
-# will go into the sysimage.
+# In particular, it only depends on the 'Manifest.toml' containing
+# pinned dependencies only, which by julia_pod convention
+# is the set of dependencies that will go into the sysimage.
 
 
 FROM sysimage-image as precompile-image
