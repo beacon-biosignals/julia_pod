@@ -79,7 +79,7 @@ VERSIONS_TAG="cuda-${CUDA_VERSION}_julia-${JULIA_VERSION}"
 DEPS_SHA="precompiled-$(sha1sum Project.toml Manifest.toml | sha1sum | head -c7)"
 
 # CACHE TAGs, designed to only change if cache images change (can we get a hash from the image itself instead?)
-BASE_IMAGE_CACHE="${IMAGE_REPO}:baseimage_${VERSIONS_TAG}"
+BASE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_base"
 SYSIMAGE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_sysimage"
 PRECOMPILE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_${DEPS_SHA}"
 
@@ -143,4 +143,3 @@ log "BASE_IMAGE_CACHE=$BASE_IMAGE_CACHE"
 log "SYSIMAGE_IMAGE_CACHE=$SYSIMAGE_IMAGE_CACHE"
 log "PRECOMPILE_IMAGE_CACHE=$PRECOMPILE_IMAGE_CACHE"
 log "IMAGE_TAG=$IMAGE_TAG"
-
