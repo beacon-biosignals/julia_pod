@@ -154,8 +154,6 @@ could change the version of a package via Pkg but find that they
 are still only using the version locked into the sysimage.
 This is why it was decided to use pinned packages to control
 what is built into the sysimage.
-of dependencies that have pinned versions be those that get
-included in the built sysimage.
 
 
 ##### notebooks
