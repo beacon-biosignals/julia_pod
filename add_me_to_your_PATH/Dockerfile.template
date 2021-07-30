@@ -5,8 +5,7 @@ ARG CUDA_VERSION
 
 FROM julia:${JULIA_VERSION}-buster as pinned-extractor
 
-COPY Project.toml /Project.toml
-COPY Manifest.toml /Manifest.toml
+COPY *Project.toml *Manifest.toml .
 
 # Remove all packages that are not pinned or are not a dependency of a pinned package
 RUN julia --project=. -e 'using Pkg;\
