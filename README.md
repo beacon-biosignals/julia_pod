@@ -37,7 +37,7 @@ it is running.
 ##### Prerequisites
 
 - a working `kubectl` configured to connect with a k8s cluster
-- make sure your docker version is `>= 20.20.7`, and set up `docker buildx`:
+- make sure your docker version is `>= 20.10.7`, and set up `docker buildx`:
     - `export DOCKER_BUILDKIT=1` and `export DOCKER_CLI_EXPERIMENTAL=enabled` (for example in your .bashrc)
 - make sure your docker is using the `docker` driver and not a `docker-container` driver
   by doing `docker buildx use default` (otherwise re-builds may be slower.)
