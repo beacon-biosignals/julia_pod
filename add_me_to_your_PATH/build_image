@@ -35,9 +35,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
     bail "IMAGE_REPO env variable must be set, add it to $SCRIPT_DIR/accounts.sh"
 }
 
-[[ -z "$GITHUB_TOKEN" ]] && {
-    warn "GITHUB_TOKEN env variable not set, private github repos will not be accessible."
-    GITHUB_TOKEN=""
+[[ -z "$GITHUB_TOKEN_FILE" ]] && {
+    warn "GITHUB_TOKEN_FILE env variable not set, private GitHub repos will not be accessible."
+    GITHUB_TOKEN_FILE=""
 }
 
 [[ -f Project.toml ]] || {
@@ -98,7 +98,7 @@ log "building and pushing sysimage-image with ECR_TAG = $BASE_IMAGE_CACHE"
 docker buildx build --target base \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
-                    --build-arg "GITHUB_TOKEN=$GITHUB_TOKEN" \
+                    --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     -t "$BASE_IMAGE_CACHE" --push .
@@ -106,7 +106,7 @@ docker buildx build --target base \
 log "building and pushing sysimage-image with ECR_TAG = $SYSIMAGE_IMAGE_CACHE"
 
 docker buildx build --target sysimage-image \
-                    --build-arg "GITHUB_TOKEN=$GITHUB_TOKEN" \
+                    --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
@@ -117,7 +117,7 @@ docker buildx build --target sysimage-image \
 log "building and loading precompile-image with TAG = $PRECOMPILE_IMAGE_CACHE"
 
 docker buildx build --target precompile-image \
-                    --build-arg "GITHUB_TOKEN=$GITHUB_TOKEN" \
+                    --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
@@ -128,7 +128,7 @@ docker buildx build --target precompile-image \
 
 log "building and pushing image with ECR_TAG = $IMAGE_TAG"
 
-docker buildx build --build-arg "GITHUB_TOKEN=$GITHUB_TOKEN" \
+docker buildx build --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \

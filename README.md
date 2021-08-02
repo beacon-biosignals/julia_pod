@@ -110,9 +110,9 @@ and then `build_image` to build one. For this:
   (for example for AWS ECR, this is done by ensuring that the
   [credential helper](https://github.com/awslabs/amazon-ecr-credential-helper)
   is installed and Docker is configured to use it).
-- if you have a `GITUHB_TOKEN` that gives access to private github
-  repositories, you can pass it in as the `GITHUB_TOKEN` environment
-  variable.
+- if you have a GitHub token that gives access to private github
+  repositories, you can provide that secret by storing it in a file and
+  specifying the path in the environment variable: `GITHUB_TOKEN_FILE`.
 
 If you do not have a `Dockerfile` or `driver.yaml.template`
 in your julia project root dir, default versions of these will be
