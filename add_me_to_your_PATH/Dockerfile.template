@@ -8,9 +8,10 @@ FROM julia:${JULIA_VERSION}-buster as pinned-extractor
 COPY *Project.toml *Manifest.toml .
 
 # Remove all packages that are not pinned or are not a dependency of a pinned package
-RUN julia --project=. -e 'using Pkg;\
-                          pinned = [p.name for p in values(Pkg.dependencies()) if p.is_pinned];\
-                          Pkg.rm([p for p in keys(Pkg.project().dependencies) if p ∉ pinned])'
+RUN julia --project=. -e 'using Pkg; \
+                          pinned = [p.name for p in values(Pkg.dependencies()) if p.is_pinned]; \
+                          unpinned = [p for p in keys(Pkg.project().dependencies) if p ∉ pinned]; \
+                          isempty(unpinned) || Pkg.rm(unpinned)'
 
 FROM julia:${JULIA_VERSION}-buster as julia-base
 
@@ -82,7 +83,7 @@ RUN --mount=type=secret,id=github_token \
     fi
 RUN mkdir -p /root/.julia/config
 
-COPY Project.toml Manifest.toml /JuliaProject
+COPY *Project.toml *Manifest.toml /JuliaProject
 
 # comment out if you don't have any `dev --local` deps
 COPY dev/ /JuliaProject/dev/

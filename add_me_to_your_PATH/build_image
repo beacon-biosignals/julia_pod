@@ -44,10 +44,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
     bail "no Project.toml found in $PWD"
 }
 
-[[ -f Manifest.toml ]] || {
-    bail "no Manifest.toml found in $PWD"
-}
-
 [[ -d src ]] || {
     bail "no src/ found in $PWD"
 }
