@@ -8,7 +8,7 @@
 
 # example setup
 
-CALLER_ID=$(aws sts get-caller-identity)
+CALLER_ID=$(aws sts get-caller-identity --output json)
 AWS_ACCOUNT_ID=$(echo "$CALLER_ID" | jq -r .Account)
 REGION="us-east-2"
 PROJECT_NAME=$(echo "$CALLER_ID" | grep -oP 'assumed-role/\K[^/]*')
