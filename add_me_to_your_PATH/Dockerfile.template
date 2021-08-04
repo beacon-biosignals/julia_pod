@@ -36,6 +36,13 @@ RUN curl -L https://raw.githubusercontent.com/beacon-biosignals/github-token-hel
     chmod +x $HOME/.github-token-helper && \
     git config --global credential.https://github.com.helper "$HOME/.github-token-helper -f /run/secrets/github_token -e GITHUB_TOKEN"
 
+# Install the General registry and optionally a private registry
+ARG PRIVATE_REGISTRY_URL=""
+RUN --mount=type=secret,id=github_token \
+    julia -e 'using Pkg; \
+              !isempty(ENV["PRIVATE_REGISTRY_URL"]) && Pkg.Registry.add(RegistrySpec(url=ENV["PRIVATE_REGISTRY_URL"])); \
+              Pkg.Registry.add("General")'
+
 
 FROM base as sysimage-image
 
@@ -46,17 +53,11 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the General registry and optionally a private registry
-ARG PRIVATE_REGISTRY_URL=""
-RUN --mount=type=secret,id=github_token \
-    julia -e 'using Pkg; \
-              !isempty(ENV["PRIVATE_REGISTRY_URL"]) && Pkg.Registry.add(RegistrySpec(url=ENV["PRIVATE_REGISTRY_URL"])); \
-              Pkg.Registry.add("General")'
-
 # Instantiate the Julia project environment
 COPY --from=pinned-extractor *Project.toml *Manifest.toml /JuliaProject/
 
-RUN julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
+RUN --mount=type=secret,id=github_token \
+    julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
 
 COPY sysimage.jl /JuliaProject/sysimage.jl
 RUN --mount=type=secret,id=github_token \
@@ -88,7 +89,8 @@ COPY *Project.toml *Manifest.toml /JuliaProject
 # comment out if you don't have any `dev --local` deps
 COPY dev/ /JuliaProject/dev/
 
-RUN julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
+RUN --mount=type=secret,id=github_token \
+    julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
 
 #####
 ##### project initialization stage

@@ -97,9 +97,7 @@ custom `Dockerfile`s need to be structured
 with the same build stages as `add_me_to_your_PATH/Dockerfile.template`.
 
 `--julia` is the julia command to be run in the container, as a
-comma-separated list of "-quoted words. Defaults to `"julia"` if
-`--image` is set, or `"julia", "--sysimage=/deps.so"` if it is not
-since this is what the default `Dockerfile` is set up to run.
+comma-separated list of "-quoted words. Defaults to `"julia"`.
 
 If no `--image=...` is passed in, `julia_pod` will call `accounts.sh`
 and then `build_image` to build one. For this:
@@ -128,6 +126,14 @@ especially if sysimages are involved. However:
 - subsequently it's fairly quick to spin up.
 - you can add deps from within your julia session, and the folder 
   syncing will mirror them to your local project folder.
+
+
+### private package registry
+
+If you use a private Julia packages you can add your private package
+registry by setting the environmental variable `PRIVATE_REGISTRY_URL`.
+The environmental variable `GITHUB_TOKEN_FILE` specifies path to the
+credentials file used when authenticating.
 
 
 ### set your project up for faster load times

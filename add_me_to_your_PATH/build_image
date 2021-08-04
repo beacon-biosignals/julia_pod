@@ -95,6 +95,7 @@ docker buildx build --target base \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
                     --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
+                    --build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     -t "$BASE_IMAGE_CACHE" --push .
@@ -106,6 +107,7 @@ docker buildx build --target sysimage-image \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
+                    --build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL" \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     -t "$SYSIMAGE_IMAGE_CACHE" --push .
@@ -117,6 +119,7 @@ docker buildx build --target precompile-image \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
+                    --build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL" \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     --cache-from "$PRECOMPILE_IMAGE_CACHE" \
@@ -128,6 +131,7 @@ docker buildx build --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
+                    --build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL" \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     --cache-from "$PRECOMPILE_IMAGE_CACHE" \
