@@ -9,8 +9,11 @@ COPY *Project.toml *Manifest.toml .
 
 # Remove all packages that are not pinned or are not a dependency of a pinned package
 RUN julia --project=. -e 'using Pkg;\
-                          pinned = [p.name for p in values(Pkg.dependencies()) if p.is_pinned];\
-                          Pkg.rm([p for p in keys(Pkg.project().dependencies) if p ∉ pinned]; mode=Pkg.PKGMODE_MANIFEST)'
+                          not_pinned = [p.name for p in values(Pkg.dependencies()) if
+                                        p.is_direct_dep &&
+                                        !p.is_pinned &&
+                                        p.name ∉ values(Pkg.Types.stdlibs())];\
+                          isempty(not_pinned) || Pkg.rm(not_pinned; mode=Pkg.PKGMODE_MANIFEST)'
 
 FROM julia:${JULIA_VERSION}-buster as julia-base
 
