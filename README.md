@@ -68,9 +68,9 @@ vars for your cluster:
 - `KUBERNETES_SERVICEACCOUNT`
 - `IMAGE_REPO` -- a docker repo from which container images can be pulled
 
-To give your `julia_pod` access to private packages,
-uncomment and adapt the `# Optionally install a private Registry`
-line in `add_me_to_your_PATH/Dockerfile.template`.
+To give your `julia_pod` access to private packages set the following ENV vars:
+- `PRIVATE_REGISTRY_URL` -- URL to the private Julia package registry
+- `GITHUB_TOKEN_FILE` -- Path to a file containing [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) with "repo" scope access.
 
 Then just add `add_me_to_your_PATH/` to your path, or call
 `/path/to/add_me_to_your_PATH/julia_pod`.
