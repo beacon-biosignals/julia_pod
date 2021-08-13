@@ -68,9 +68,9 @@ vars for your cluster:
 - `KUBERNETES_SERVICEACCOUNT`
 - `IMAGE_REPO` -- a docker repo from which container images can be pulled
 
-To give your `julia_pod` access to private packages,
-uncomment and adapt the `# Optionally install a private Registry`
-line in `add_me_to_your_PATH/Dockerfile.template`.
+To give your `julia_pod` access to private packages set the following ENV vars:
+- `PRIVATE_REGISTRY_URL` -- URL to the private Julia package registry
+- `GITHUB_TOKEN_FILE` -- Path to a file containing [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) with "repo" scope access.
 
 Then just add `add_me_to_your_PATH/` to your path, or call
 `/path/to/add_me_to_your_PATH/julia_pod`.
@@ -97,9 +97,7 @@ custom `Dockerfile`s need to be structured
 with the same build stages as `add_me_to_your_PATH/Dockerfile.template`.
 
 `--julia` is the julia command to be run in the container, as a
-comma-separated list of "-quoted words. Defaults to `"julia"` if
-`--image` is set, or `"julia", "--sysimage=/deps.so"` if it is not
-since this is what the default `Dockerfile` is set up to run.
+comma-separated list of "-quoted words. Defaults to `"julia"`.
 
 If no `--image=...` is passed in, `julia_pod` will call `accounts.sh`
 and then `build_image` to build one. For this:
@@ -110,9 +108,9 @@ and then `build_image` to build one. For this:
   (for example for AWS ECR, this is done by ensuring that the
   [credential helper](https://github.com/awslabs/amazon-ecr-credential-helper)
   is installed and Docker is configured to use it).
-- if you have a `GITUHB_TOKEN` that gives access to private github
-  repositories, you can pass it in as the `GITHUB_TOKEN` environment
-  variable.
+- if you have a GitHub token that gives access to private github
+  repositories, you can provide that secret by storing it in a file and
+  specifying the path in the environment variable: `GITHUB_TOKEN_FILE`.
 
 If you do not have a `Dockerfile` or `driver.yaml.template`
 in your julia project root dir, default versions of these will be
@@ -128,6 +126,14 @@ especially if sysimages are involved. However:
 - subsequently it's fairly quick to spin up.
 - you can add deps from within your julia session, and the folder 
   syncing will mirror them to your local project folder.
+
+
+### private package registry
+
+If you use a private Julia packages you can add your private package
+registry by setting the environmental variable `PRIVATE_REGISTRY_URL`.
+The environmental variable `GITHUB_TOKEN_FILE` specifies path to the
+credentials file used when authenticating.
 
 
 ### set your project up for faster load times

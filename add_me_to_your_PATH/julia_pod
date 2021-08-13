@@ -107,10 +107,6 @@ DRIVER_YAML="driver-${RUNID}.yaml"
 # if `julia_pod` was called with args, replace values in `driver.yaml`
 [[ -n "${JULIA_COMMAND}" ]] || {
     JULIA_COMMAND='"julia"'
-    [[ -n ${IMAGE_TAG_ARG} ]] || {
-        # we are using image built by julia_pod, which builds a sysimage
-        JULIA_COMMAND='"julia", "--sysimage=/deps.so"'
-    }
 }
 if [ -n "${args}" ]; then
     # user passed in some julia code to run
@@ -119,13 +115,25 @@ fi
 JULIA_COMMAND="[${JULIA_COMMAND}]"
 echo $JULIA_COMMAND
 
+# generate a k8s secret name
+SECRET_NAME=$(echo "${AWS_USER_ID}" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\+/-/g')
+
+
+if kubectl get secret $SECRET_NAME &>/dev/null; then
+    kubectl delete secret $SECRET_NAME
+fi
+
+# pod will fail to start unless secret and key are present. When `GITHUB_TOKEN_FILE` isn't set this will be populated with ""
+echo "GITHUB_TOKEN=$([ -z ${GITHUB_TOKEN_FILE} ] || cat ${GITHUB_TOKEN_FILE})" | kubectl create secret generic $SECRET_NAME --from-env-file=/dev/stdin
+
 # substitute ENV vars into driver.yaml.template > driver.yaml for this run
 log "Generating $DRIVER_YAML" \
     && IMAGE_TAG=$IMAGE_TAG \
         RUNID=$RUNID \
         KUBERNETES_SERVICEACCOUNT=$KUBERNETES_SERVICEACCOUNT \
         JULIA_COMMAND=$JULIA_COMMAND \
-            envsubst '${IMAGE_TAG} ${RUNID} ${KUBERNETES_SERVICEACCOUNT} ${JULIA_COMMAND}' <driver.yaml.template >$DRIVER_YAML
+        SECRET_NAME=$SECRET_NAME \
+            envsubst '${IMAGE_TAG} ${RUNID} ${KUBERNETES_SERVICEACCOUNT} ${JULIA_COMMAND} ${SECRET_NAME}' <driver.yaml.template >$DRIVER_YAML
 
 # launch job
 kubectl apply -f $DRIVER_YAML -n "$KUBERNETES_NAMESPACE"

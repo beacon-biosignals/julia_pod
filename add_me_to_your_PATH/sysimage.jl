@@ -13,6 +13,9 @@ if project.ispackage && !isfile(modulefile)
     end
 end
 
+# Skip generating a system image when there are no dependencies
+isempty(project.dependencies) && exit(0)
+
 Pkg.add("PackageCompiler")
 
 using PackageCompiler, UUIDs
@@ -25,8 +28,8 @@ function main()
     packages = setdiff(packages, exclude)
     println("Creating sys image with deps being tracked from a registry:")
     println(packages)
-    create_sysimage(packages; sysimage_path="deps.so", cpu_target = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)")
-    Pkg.rm("PackageCompiler")
+    create_sysimage(packages; replace_default=true, cpu_target = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)")
 end
 
 main()
+Pkg.rm("PackageCompiler")
