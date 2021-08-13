@@ -8,10 +8,11 @@
 
 # example setup
 
-CALLER_ID=$(aws sts get-caller-identity)
+CALLER_ID=$(aws sts get-caller-identity --output json)
 AWS_ACCOUNT_ID=$(echo "$CALLER_ID" | jq -r .Account)
+AWS_USER_ID=$(echo "$CALLER_ID" | jq -r .UserId)
 REGION="us-east-2"
-PROJECT_NAME=$(echo "$CALLER_ID" | grep -oP 'assumed-role/\K[^/]*')
+PROJECT_NAME=${PROJECT_NAME:-$(echo "$CALLER_ID" | grep -oP 'assumed-role/\K[^/]*')}
 
 # above is setup for 3 required vars below
 
