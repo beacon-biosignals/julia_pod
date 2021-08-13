@@ -10,11 +10,10 @@ COPY *Project.toml *Manifest.toml .
 # Remove all packages that are not pinned recursively from the manifest
 # (stdlibs count as pinned)
 RUN julia --project=. -e 'using Pkg;\
-                          not_pinned = [p.name for p in values(Pkg.dependencies()) if\
-                                        p.is_direct_dep &&\
-                                        !p.is_pinned &&\
-                                        p.name ∉ values(Pkg.Types.stdlibs())];\
-                          isempty(not_pinned) || Pkg.rm(not_pinned; mode=Pkg.PKGMODE_MANIFEST)'
+                          unpinned = [p.name for p in values(Pkg.dependencies()) \
+                                      if p.is_direct_dep && !p.is_pinned && \
+                                      p.name ∉ values(Pkg.Types.stdlibs())]; \
+                          isempty(unpinned) || Pkg.rm(unpinned; mode=Pkg.PKGMODE_MANIFEST)'
 
 FROM julia:${JULIA_VERSION}-buster as julia-base
 
