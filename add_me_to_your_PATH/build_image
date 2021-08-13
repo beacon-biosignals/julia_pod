@@ -30,15 +30,21 @@ bail() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+BUILD_ARGS=()
 
 [[ -z ${IMAGE_REPO} ]] && {
     bail "IMAGE_REPO env variable must be set, add it to $SCRIPT_DIR/accounts.sh"
 }
 
-[[ -z "$GITHUB_TOKEN_FILE" ]] && {
+if [[ -n "$GITHUB_TOKEN_FILE" ]]; then
+    BUILD_ARGS+=(--secret id=github_token,src="$GITHUB_TOKEN_FILE")
+else
     warn "GITHUB_TOKEN_FILE env variable not set, private GitHub repos will not be accessible."
-    GITHUB_TOKEN_FILE=""
-}
+fi
+
+if [[ -n "$PRIVATE_REGISTRY_URL" ]]; then
+    BUILD_ARGS+=(--build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL")
+fi
 
 [[ -f Project.toml ]] || {
     bail "no Project.toml found in $PWD"
@@ -91,23 +97,23 @@ IMAGE_TAG="${IMAGE_REPO}:${VERSIONS_TAG}_${GIT_INFO}_commit-${GIT_COMMIT}_sha1-$
 
 log "building and pushing sysimage-image with ECR_TAG = $BASE_IMAGE_CACHE"
 
+
+
 docker buildx build --target base \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
-                    --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
-                    --build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
+                    ${BUILD_ARGS[@]} \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     -t "$BASE_IMAGE_CACHE" --push .
 
 log "building and pushing sysimage-image with ECR_TAG = $SYSIMAGE_IMAGE_CACHE"
 
 docker buildx build --target sysimage-image \
-                    --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
-                    --build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL" \
+                    ${BUILD_ARGS[@]} \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     -t "$SYSIMAGE_IMAGE_CACHE" --push .
@@ -115,11 +121,10 @@ docker buildx build --target sysimage-image \
 log "building and loading precompile-image with TAG = $PRECOMPILE_IMAGE_CACHE"
 
 docker buildx build --target precompile-image \
-                    --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
-                    --build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL" \
+                    ${BUILD_ARGS[@]} \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     --cache-from "$PRECOMPILE_IMAGE_CACHE" \
@@ -127,11 +132,10 @@ docker buildx build --target precompile-image \
 
 log "building and pushing image with ECR_TAG = $IMAGE_TAG"
 
-docker buildx build --secret id=github_token,src="$GITHUB_TOKEN_FILE" \
-                    --build-arg "BUILDKIT_INLINE_CACHE=1" \
+docker buildx build --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
-                    --build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL" \
+                    ${BUILD_ARGS[@]} \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     --cache-from "$PRECOMPILE_IMAGE_CACHE" \
