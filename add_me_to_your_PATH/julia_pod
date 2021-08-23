@@ -170,7 +170,7 @@ success "==== Pod $podname is RUNNING! ====\n\n"
 
 if [[ -n ${PORT_FORWARD} ]]; then
     sleep 1
-    kubectl port-forward pod/$podname $PORT_FORWARD >/tmp/kubectl-port-forward-$RUNID.log &
+    kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD >/tmp/kubectl-port-forward-$RUNID.log &
     log "\n#====> port-forwarding $PORT_FORWARD, anyone else wanting to also connect can run: <====#"
     log "kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD\n\n\n\n"
 fi
