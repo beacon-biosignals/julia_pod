@@ -38,10 +38,12 @@ while [ -n "$*" ]; do
         SYNC=false
     elif [[ "$1" == --image=* ]]; then
         IMAGE_TAG_ARG=$(echo $1 | cut -c 9-)
+    elif [[ "$1" == --port-forward=* ]]; then
+        PORT_FORWARD=$(echo $1 | cut -c 16-)
     elif [[ "$1" == --julia=* ]]; then
         JULIA_COMMAND=$(echo $1 | cut -c 9-)
     elif [ -n "${args}" ]; then
-        bail "julia_pod expects at most 2 arguments (the option '--no-sync' and a julia string), got ${nargs} args instead"
+        bail "julia_pod got unexpected option $1 instead of '--no-sync', '--image=' or '--port-forward=' (anything else is interpreted as a julia string)"
     elif [ -n "$1" ]; then
         args="$1"
     fi
@@ -166,14 +168,21 @@ success "==== Pod $podname is RUNNING! ====\n\n"
     echo ""
 }
 
+if [[ -n ${PORT_FORWARD} ]]; then
+    sleep 1
+    kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD >/tmp/kubectl-port-forward-$RUNID.log &
+    log "\n#====> port-forwarding $PORT_FORWARD, anyone else wanting to also connect can run: <====#"
+    log "kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD\n\n\n\n"
+fi
+
 # drop into REPL
 kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo ""
 
 # REPL session has exited, clean up
-[[ "${SYNC}" = true ]] && {
+[[ "${SYNC}" = true ]] || [[ -n ${PORT_FORWARD} ]] && {
     echo ""
     echo ""
-    log "Detached from pod, killing folder syncs!"
+    log "Detached from pod, killing folder syncs and/or port forwarding!"
     echo ""
 
     # kill background processes

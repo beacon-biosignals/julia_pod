@@ -96,6 +96,9 @@ folder to build an image from, and if that's not present it'll use
 custom `Dockerfile`s need to be structured
 with the same build stages as `add_me_to_your_PATH/Dockerfile.template`.
 
+`--port-forward` port forwards between localhost and the julia
+pod, e.g. `--port-forward=1234:1234`.
+
 `--julia` is the julia command to be run in the container, as a
 comma-separated list of "-quoted words. Defaults to `"julia"`.
 
@@ -127,6 +130,18 @@ especially if sysimages are involved. However:
 - you can add deps from within your julia session, and the folder 
   syncing will mirror them to your local project folder.
 
+##### Examples
+
+From a julia project folder containing Pluto as a dependency,
+
+```bash
+julia_pod --port-forward=1234:1234 'using Pluto; Pluto.run()'
+```
+
+will run a Pluto notebook and make `localhost:1234` forward to port
+`1234` in the pod running the notebook.
+
+`julia_pod --julia='"julia", "-t", "16"'` will launch a `julia_pod` with 16 threads.
 
 ### private package registry
 
