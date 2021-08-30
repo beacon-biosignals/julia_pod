@@ -128,6 +128,8 @@ fi
 # pod will fail to start unless secret and key are present. When `GITHUB_TOKEN_FILE` isn't set this will be populated with ""
 echo "GITHUB_TOKEN=$([ -z ${GITHUB_TOKEN_FILE} ] || cat ${GITHUB_TOKEN_FILE})" | kubectl create secret generic $SECRET_NAME --from-env-file=/dev/stdin
 
+#GIT_INFO="${GIT_REPO}_${GIT_BRANCH}"
+
 # substitute ENV vars into driver.yaml.template > driver.yaml for this run
 log "Generating $DRIVER_YAML" \
     && IMAGE_TAG=$IMAGE_TAG \
@@ -135,7 +137,9 @@ log "Generating $DRIVER_YAML" \
         KUBERNETES_SERVICEACCOUNT=$KUBERNETES_SERVICEACCOUNT \
         JULIA_COMMAND=$JULIA_COMMAND \
         SECRET_NAME=$SECRET_NAME \
-            envsubst '${IMAGE_TAG} ${RUNID} ${KUBERNETES_SERVICEACCOUNT} ${JULIA_COMMAND} ${SECRET_NAME}' <driver.yaml.template >$DRIVER_YAML
+        GIT_REPO=$GIT_REPO \
+        GIT_BRANCH=$GIT_BRANCH \
+            envsubst '${IMAGE_TAG} ${RUNID} ${KUBERNETES_SERVICEACCOUNT} ${JULIA_COMMAND} ${SECRET_NAME} ${GIT_REPO} ${GIT_BRANCH}' <driver.yaml.template >$DRIVER_YAML
 
 # launch job
 kubectl apply -f $DRIVER_YAML -n "$KUBERNETES_NAMESPACE"
@@ -172,8 +176,10 @@ if [[ -n ${PORT_FORWARD} ]]; then
     sleep 1
     kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD >/tmp/kubectl-port-forward-$RUNID.log &
     log "\n#====> port-forwarding $PORT_FORWARD, anyone else wanting to also connect can run: <====#"
-    log "kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD\n\n\n\n"
+    log "kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD\n\n"
 fi
+
+log "jobs and pods running with labels:  -l git_repo=${GIT_REPO},git_branch=${GIT_BRANCH}\n\n"
 
 # drop into REPL
 kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo ""

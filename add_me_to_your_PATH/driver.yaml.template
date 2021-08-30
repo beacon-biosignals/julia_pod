@@ -2,9 +2,18 @@ apiVersion: batch/v1
 kind: Job
 metadata:
     name: ${RUNID}
+    labels:
+        git_repo: ${GIT_REPO}
+        git_branch: ${GIT_BRANCH}
 spec:
     ttlSecondsAfterFinished: 10
     template:
+        metadata:
+            annotations:
+                cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+            labels:
+                git_repo: ${GIT_REPO}
+                git_branch: ${GIT_BRANCH}
         spec:
             serviceAccountName: ${KUBERNETES_SERVICEACCOUNT}
             restartPolicy: Never
