@@ -157,7 +157,7 @@ done
 
 sleep 1
 
-podname=$(kubectl get pods "--selector=job-name=$RUNID" --output=jsonpath='{.items[*].metadata.name}' -n "$KUBERNETES_NAMESPACE")
+podname=$(kubectl get pods "--selector=job-name=driver-$RUNID" --output=jsonpath='{.items[*].metadata.name}' -n "$KUBERNETES_NAMESPACE")
 
 log "Waiting for pod $podname to be ready..."
 until kubectl wait --for=condition=Ready "pod/$podname" -n "$KUBERNETES_NAMESPACE" --timeout=1s 2>/dev/null; do
