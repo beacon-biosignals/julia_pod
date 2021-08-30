@@ -102,6 +102,9 @@ pod, e.g. `--port-forward=1234:1234`.
 `--julia` is the julia command to be run in the container, as a
 comma-separated list of "-quoted words. Defaults to `"julia"`.
 
+`--runid` will allow customizing the "run ID" used to choose the
+name of the kubernetes job.
+
 If no `--image=...` is passed in, `julia_pod` will call `accounts.sh`
 and then `build_image` to build one. For this:
 - your current directory must be a julia project root directory
