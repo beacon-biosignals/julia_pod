@@ -151,13 +151,13 @@ kubectl apply -f $DRIVER_YAML -n "$KUBERNETES_NAMESPACE"
 
 log "Waiting for job to have active pod..."
 
-until kubectl get "job/driver-$RUNID" -n "$KUBERNETES_NAMESPACE" -o 'jsonpath={..status.active}' | grep '1'; do
+until kubectl get "job/$RUNID" -n "$KUBERNETES_NAMESPACE" -o 'jsonpath={..status.active}' | grep '1'; do
     printf "."
 done
 
 sleep 1
 
-podname=$(kubectl get pods "--selector=job-name=driver-$RUNID" --output=jsonpath='{.items[*].metadata.name}' -n "$KUBERNETES_NAMESPACE")
+podname=$(kubectl get pods "--selector=job-name=$RUNID" --output=jsonpath='{.items[*].metadata.name}' -n "$KUBERNETES_NAMESPACE")
 
 log "Waiting for pod $podname to be ready..."
 until kubectl wait --for=condition=Ready "pod/$podname" -n "$KUBERNETES_NAMESPACE" --timeout=1s 2>/dev/null; do
@@ -201,4 +201,4 @@ kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo "
 log "====    ALL DONE    ===="
 log ""
 log "to force deleting job if your cluster is not set up to reap completed jobs with a ttlSecondsAfterFinished:"
-log "kubectl delete job/driver-$RUNID -n $KUBERNETES_NAMESPACE --grace-period=0 --force=true"
+log "kubectl delete job/$RUNID -n $KUBERNETES_NAMESPACE --grace-period=0 --force=true"

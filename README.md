@@ -103,7 +103,9 @@ pod, e.g. `--port-forward=1234:1234`.
 comma-separated list of "-quoted words. Defaults to `"julia"`.
 
 `--runid` will allow customizing the "run ID" used to choose the
-name of the kubernetes job.
+name of the kubernetes job; if this flag is not provided,
+the kubernetes job and pod names will be a default
+based on the git repo and branch names.
 
 If no `--image=...` is passed in, `julia_pod` will call `accounts.sh`
 and then `build_image` to build one. For this:
