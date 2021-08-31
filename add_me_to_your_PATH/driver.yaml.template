@@ -4,6 +4,7 @@ metadata:
     name: ${RUNID}
     labels:
         git_repo: ${GIT_REPO}
+        git_sha: ${GIT_COMMIT}
         git_branch: ${GIT_BRANCH}
 spec:
     ttlSecondsAfterFinished: 10
@@ -13,6 +14,7 @@ spec:
                 cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
             labels:
                 git_repo: ${GIT_REPO}
+                git_sha: ${GIT_COMMIT}
                 git_branch: ${GIT_BRANCH}
         spec:
             serviceAccountName: ${KUBERNETES_SERVICEACCOUNT}

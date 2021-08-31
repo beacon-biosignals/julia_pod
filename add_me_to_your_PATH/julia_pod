@@ -132,14 +132,16 @@ echo "GITHUB_TOKEN=$([ -z ${GITHUB_TOKEN_FILE} ] || cat ${GITHUB_TOKEN_FILE})" |
 
 # substitute ENV vars into driver.yaml.template > driver.yaml for this run
 log "Generating $DRIVER_YAML" \
-    && IMAGE_TAG=$IMAGE_TAG \
+    && env -i \
+        IMAGE_TAG=$IMAGE_TAG \
         RUNID=$RUNID \
         KUBERNETES_SERVICEACCOUNT=$KUBERNETES_SERVICEACCOUNT \
         JULIA_COMMAND=$JULIA_COMMAND \
         SECRET_NAME=$SECRET_NAME \
         GIT_REPO=$GIT_REPO \
         GIT_BRANCH=$GIT_BRANCH \
-            envsubst '${IMAGE_TAG} ${RUNID} ${KUBERNETES_SERVICEACCOUNT} ${JULIA_COMMAND} ${SECRET_NAME} ${GIT_REPO} ${GIT_BRANCH}' <driver.yaml.template >$DRIVER_YAML
+        GIT_COMMIT=$GIT_COMMIT \
+        $(command -v envsubst) <driver.yaml.template >$DRIVER_YAML
 
 # launch job
 kubectl apply -f $DRIVER_YAML -n "$KUBERNETES_NAMESPACE"
@@ -179,7 +181,7 @@ if [[ -n ${PORT_FORWARD} ]]; then
     log "kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD\n\n"
 fi
 
-log "running jobs and pods can be found using selector: `-l git_repo=${GIT_REPO},git_branch=${GIT_BRANCH}`\n\n"
+log "running jobs and pods can be found using selector: '-l git_repo=${GIT_REPO},git_branch=${GIT_BRANCH},git_sha=${GIT_COMMIT}'\n\n"
 
 # drop into REPL
 kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo ""
