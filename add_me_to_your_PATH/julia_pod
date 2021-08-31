@@ -179,7 +179,7 @@ if [[ -n ${PORT_FORWARD} ]]; then
     log "kubectl port-forward -n $KUBERNETES_NAMESPACE pod/$podname $PORT_FORWARD\n\n"
 fi
 
-log "jobs and pods running with labels:  -l git_repo=${GIT_REPO},git_branch=${GIT_BRANCH}\n\n"
+log "running jobs and pods can be found using selector: `-l git_repo=${GIT_REPO},git_branch=${GIT_BRANCH}`\n\n"
 
 # drop into REPL
 kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo ""
