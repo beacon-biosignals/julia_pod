@@ -42,6 +42,8 @@ while [ -n "$*" ]; do
         PORT_FORWARD=$(echo $1 | cut -c 16-)
     elif [[ "$1" == --julia=* ]]; then
         JULIA_COMMAND=$(echo $1 | cut -c 9-)
+    elif [[ "$1" == --runid=* ]]; then
+        RUNID=$(echo $1 | cut -c 9-)
     elif [ -n "${args}" ]; then
         bail "julia_pod got unexpected option $1 instead of '--no-sync', '--image=' or '--port-forward=' (anything else is interpreted as a julia string)"
     elif [ -n "$1" ]; then
@@ -76,11 +78,18 @@ source "$SCRIPT_DIR/accounts.sh"
 if [[ -n ${IMAGE_TAG_ARG} ]]; then
     IMAGE_TAG=$IMAGE_TAG_ARG
     log "using docker IMAGE_TAG=${IMAGE_TAG}"
-    RUNID=$IMAGE_TAG
 else
     # build an image from pwd julia project
     source "$SCRIPT_DIR/build_image"
-    RUNID=$GIT_INFO
+fi
+
+if [[ -z "${RUNID}" ]]; then
+    echo "Setting RUNID"
+    if [[ -n ${IMAGE_TAG_ARG} ]]; then
+        RUNID=$IMAGE_TAG
+    else
+        RUNID=$GIT_INFO
+    fi
 fi
 
 # append day/time, both for podname quasi uniqueness and human-friendliness
