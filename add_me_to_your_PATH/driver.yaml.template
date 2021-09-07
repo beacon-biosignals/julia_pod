@@ -8,6 +8,7 @@ metadata:
         git_branch: ${GIT_BRANCH}
 spec:
     ttlSecondsAfterFinished: 10
+    backoffLimit: 0
     template:
         metadata:
             annotations:
