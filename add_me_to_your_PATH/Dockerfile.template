@@ -59,7 +59,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=pinned-extractor *Project.toml *Manifest.toml /JuliaProject/
 
 RUN --mount=type=secret,id=github_token \
-    julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
+    julia --project=/JuliaProject -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
 
 COPY sysimage.jl /JuliaProject/sysimage.jl
 RUN --mount=type=secret,id=github_token \
