@@ -120,6 +120,9 @@ COPY src/ JuliaProject/src/
 # final precompilation step
 RUN julia --project=/JuliaProject -e 'using Pkg; Pkg.build(); Pkg.precompile()'
 
+# copy over all other files without re-running precompile
+COPY ./* JuliaProject/
+
 ENV JULIA_PROJECT @.
 
 WORKDIR /JuliaProject
