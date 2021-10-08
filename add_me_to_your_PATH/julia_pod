@@ -203,10 +203,12 @@ kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo "
     echo ""
 
     # kill background processes
-    trap 'trap - SIGTERM && kill -- -$$' SIGINT SIGTERM EXIT
+    kill $(jobs -p)
 }
 
 log "====    ALL DONE    ===="
 log ""
 log "to force deleting job if your cluster is not set up to reap completed jobs with a ttlSecondsAfterFinished:"
 log "kubectl delete job/$RUNID -n $KUBERNETES_NAMESPACE --grace-period=0 --force=true"
+
+exit 0
