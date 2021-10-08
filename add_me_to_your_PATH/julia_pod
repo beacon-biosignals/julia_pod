@@ -210,4 +210,3 @@ log "====    ALL DONE    ===="
 log ""
 log "to force deleting job if your cluster is not set up to reap completed jobs with a ttlSecondsAfterFinished:"
 log "kubectl delete job/$RUNID -n $KUBERNETES_NAMESPACE --grace-period=0 --force=true"
-
