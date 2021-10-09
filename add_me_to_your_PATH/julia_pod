@@ -203,7 +203,7 @@ kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo "
     echo ""
 
     # kill background processes
-    trap 'trap - SIGTERM && kill -- -$$' SIGINT SIGTERM EXIT
+    kill $(jobs -p)
 }
 
 log "====    ALL DONE    ===="
