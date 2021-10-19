@@ -96,6 +96,7 @@ fi
 # sanitize to be valid dns entry
 RUNID="$(echo $RUNID | sed -e 's/[^a-zA-Z0-9]\+/-/g')-$(date +%a%Hh%Mm%S)"
 RUNID="$(echo ${RUNID##*(-)} | tr '[:upper:]' '[:lower:]')"
+RUNID=${RUNID}-$RANDOM
 
 DRIVER_YAML="driver-${RUNID}.yaml"
 
@@ -129,13 +130,8 @@ echo $JULIA_COMMAND
 # generate a k8s secret name
 SECRET_NAME=$(echo "${AWS_USER_ID}" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\+/-/g')
 
-
-if kubectl get secret $SECRET_NAME &>/dev/null; then
-    kubectl delete secret $SECRET_NAME
-fi
-
 # pod will fail to start unless secret and key are present. When `GITHUB_TOKEN_FILE` isn't set this will be populated with ""
-echo "GITHUB_TOKEN=$([ -z ${GITHUB_TOKEN_FILE} ] || cat ${GITHUB_TOKEN_FILE})" | kubectl create secret generic $SECRET_NAME --from-env-file=/dev/stdin
+echo "GITHUB_TOKEN=$([ -z ${GITHUB_TOKEN_FILE} ] || cat ${GITHUB_TOKEN_FILE})" | kubectl create secret generic $SECRET_NAME --from-env-file=/dev/stdin || true
 
 #GIT_INFO="${GIT_REPO}_${GIT_BRANCH}"
 
@@ -201,6 +197,10 @@ kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo "
     echo ""
     log "Detached from pod, killing folder syncs and/or port forwarding!"
     echo ""
+
+    if kubectl get secret $SECRET_NAME &>/dev/null; then
+        kubectl delete secret $SECRET_NAME
+    fi
 
     # kill background processes
     kill $(jobs -p)
