@@ -202,10 +202,6 @@ kubectl attach "pod/$podname" -c driver -it -n "$KUBERNETES_NAMESPACE" && echo "
     kill $(jobs -p)
 }
 
-if kubectl get secret $SECRET_NAME &>/dev/null; then
-    kubectl delete secret $SECRET_NAME
-fi
-
 log "====    ALL DONE    ===="
 log ""
 log "to force deleting job if your cluster is not set up to reap completed jobs with a ttlSecondsAfterFinished:"
