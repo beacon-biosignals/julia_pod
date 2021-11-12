@@ -16,7 +16,7 @@ end
 # Skip generating a system image when there are no dependencies
 isempty(project.dependencies) && exit(0)
 
-Pkg.add("PackageCompiler")
+Pkg.add(name="PackageCompiler", version="1")
 
 using PackageCompiler, UUIDs
 
