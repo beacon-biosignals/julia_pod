@@ -41,7 +41,9 @@ it is running.
     - `export DOCKER_BUILDKIT=1` and `export DOCKER_CLI_EXPERIMENTAL=enabled` (for example in your .bashrc)
 - make sure your docker is using the `docker` driver and not a `docker-container` driver
   by doing `docker buildx use default` (otherwise re-builds may be slower.)
-- `devspace` CLI (installation is easy)
+- Node: (e.g. on unbuntu `sudo snap install node` on Ubuntu)
+- `devspace` CLI (installation is easy: e.g. npm install -g devspace)
+- yarn CLI (e.g. npm install -g yarn)
 - set your `EDITOR` environment variable to your favorite editor
   (putting this in your shell startup script is generally good idea)
 - if your system doesn't have it already, install `jq` (https://stedolan.github.io/jq/download/)
