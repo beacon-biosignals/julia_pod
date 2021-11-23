@@ -3,9 +3,9 @@ kind: Job
 metadata:
     name: ${RUNID}
     labels:
-        git_repo: ${GIT_REPO}
+        git_repo: '${GIT_REPO}'
         git_sha: '${GIT_COMMIT}'
-        git_branch: ${GIT_BRANCH}
+        git_branch: '${GIT_BRANCH}'
 spec:
     ttlSecondsAfterFinished: 10
     backoffLimit: 0
@@ -14,20 +14,20 @@ spec:
             annotations:
                 cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
             labels:
-                git_repo: ${GIT_REPO}
+                git_repo: '${GIT_REPO}'
                 git_sha: '${GIT_COMMIT}'
-                git_branch: ${GIT_BRANCH}
+                git_branch: '${GIT_BRANCH}'
         spec:
-            serviceAccountName: ${KUBERNETES_SERVICEACCOUNT}
+            serviceAccountName: '${KUBERNETES_SERVICEACCOUNT}'
             restartPolicy: Never
             containers:
                 - name: driver
-                  image: ${IMAGE_TAG}
+                  image: '${IMAGE_TAG}'
                   env:
                       - name: GITHUB_TOKEN
                         valueFrom:
                             secretKeyRef:
-                                name: ${SECRET_NAME}
+                                name: '${SECRET_NAME}'
                                 key: GITHUB_TOKEN
                   resources:
                       limits:
