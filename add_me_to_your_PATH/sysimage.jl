@@ -15,7 +15,9 @@ end
 
 # Skip generating a system image when there are no dependencies,
 # or all deps are stdlibs.
-isempty(project.dependencies) || (values(project.dependencies) ⊆ keys(Pkg.Types.stdlibs())) && exit(0)
+if isempty(project.dependencies) || values(project.dependencies) ⊆ keys(Pkg.Types.stdlibs())
+    exit(0)
+end
 
 Pkg.add(name="PackageCompiler", version="1")
 
