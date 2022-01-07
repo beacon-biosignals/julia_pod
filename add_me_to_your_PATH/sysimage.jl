@@ -13,8 +13,11 @@ if project.ispackage && !isfile(modulefile)
     end
 end
 
-# Skip generating a system image when there are no dependencies
-isempty(project.dependencies) && exit(0)
+# Skip generating a system image when there are no dependencies,
+# or all deps are stdlibs.
+if isempty(project.dependencies) || values(project.dependencies) ⊆ keys(Pkg.Types.stdlibs())
+    exit(0)
+end
 
 Pkg.add(name="PackageCompiler", version="1")
 
