@@ -86,7 +86,7 @@ RUN --mount=type=secret,id=github_token \
     fi
 RUN mkdir -p /root/.julia/config
 
-COPY *Project.toml *Manifest.toml /JuliaProject
+COPY *Project.toml *Manifest.toml /JuliaProject/
 
 # comment out if you don't have any `dev --local` deps
 COPY dev/ /JuliaProject/dev/
