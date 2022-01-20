@@ -32,7 +32,6 @@ function main()
     println("Creating sys image with deps being tracked from a registry:")
     println(packages)
     create_sysimage(packages; replace_default=true, cpu_target = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)")
-    Pkg.instantiate()
 end
 
 main()
