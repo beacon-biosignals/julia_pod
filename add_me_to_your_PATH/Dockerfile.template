@@ -65,6 +65,8 @@ COPY sysimage.jl /JuliaProject/sysimage.jl
 RUN --mount=type=secret,id=github_token \
     julia --project=/JuliaProject -e 'include("/JuliaProject/sysimage.jl")'
 
+RUN --mount=type=secret,id=github_token \
+    julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate()'
 
 #####
 ##### sysimage stage (above)
