@@ -108,6 +108,9 @@ name of the kubernetes job; if this flag is not provided,
 the kubernetes job and pod names will be a default
 based on the git repo and branch names.
 
+`--service-account` lets you set the service account to be used for the job pods.
+If you do not set this, it will default to `$PROJECT_NAME`.
+
 If no `--image=...` is passed in, `julia_pod` will call `accounts.sh`
 and then `build_image` to build one. For this:
 - your current directory must be a julia project root directory
