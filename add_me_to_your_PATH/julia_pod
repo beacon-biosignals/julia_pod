@@ -46,8 +46,10 @@ while [ -n "$*" ]; do
         RUNID=$(echo $1 | cut -c 9-)
     elif [[ "$1" == --build-args=* ]]; then
         BUILD_ARGS=$(echo $1 | cut -c 14-)
+    elif [[ "$1" == --service-account=* ]]; then
+        export KUBERNETES_SERVICEACCOUNT=$(echo $1 | cut -c 19-)
     elif [ -n "${args}" ]; then
-        bail "julia_pod got unexpected option $1 instead of --build-args', '--no-sync', '--image=' or '--port-forward=' (anything else is interpreted as a julia string)"
+        bail "julia_pod got unexpected option $1 instead of '--service-account', '--build-args', '--no-sync', '--image=' or '--port-forward=' (anything else is interpreted as a julia string)"
     elif [ -n "$1" ]; then
         args="$1"
     fi
