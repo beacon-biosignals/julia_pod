@@ -44,6 +44,8 @@ while [ -n "$*" ]; do
         JULIA_COMMAND=$(echo $1 | cut -c 9-)
     elif [[ "$1" == --runid=* ]]; then
         RUNID=$(echo $1 | cut -c 9-)
+    elif [[ "$1" == --service-account=* ]]; then
+        export KUBERNETES_SERVICEACCOUNT=$(echo $1 | cut -c 19-)
     elif [ -n "${args}" ]; then
         bail "julia_pod got unexpected option $1 instead of '--no-sync', '--image=' or '--port-forward=' (anything else is interpreted as a julia string)"
     elif [ -n "$1" ]; then
