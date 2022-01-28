@@ -97,6 +97,8 @@ folder to build an image from, and if that's not present it'll use
 custom `Dockerfile`s need to be structured
 with the same build stages as `add_me_to_your_PATH/Dockerfile.template`.
 
+`--build-args` lets you pass additional arguments to `docker buildx build`, e.g. if you have a bad cache you could pass `--build-args="--no-cache"`.
+
 `--port-forward` port forwards between localhost and the julia
 pod, e.g. `--port-forward=1234:1234`.
 
