@@ -32,6 +32,8 @@ bail() {
 SYNC=true
 nargs="$#"
 
+BUILD_ARGS=""
+
 # parse args
 while [ -n "$*" ]; do
     if [ "$1" = "--no-sync" ]; then
@@ -45,7 +47,8 @@ while [ -n "$*" ]; do
     elif [[ "$1" == --runid=* ]]; then
         RUNID=$(echo $1 | cut -c 9-)
     elif [[ "$1" == --build-args=* ]]; then
-        BUILD_ARGS=$(echo $1 | cut -c 14-)
+        BUILD_ARGS+=$(echo $1 | cut -c 14-)
+        BUILD_ARGS+=" "
     elif [[ "$1" == --service-account=* ]]; then
         export KUBERNETES_SERVICEACCOUNT=$(echo $1 | cut -c 19-)
     elif [ -n "${args}" ]; then
