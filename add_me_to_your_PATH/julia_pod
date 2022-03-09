@@ -144,7 +144,7 @@ echo "GITHUB_TOKEN=$([ -z ${GITHUB_TOKEN_FILE} ] || cat ${GITHUB_TOKEN_FILE})" |
 
 # substitute ENV vars into driver.yaml.template > driver.yaml for this run
 log "Generating $DRIVER_YAML" \
-    && env -i \
+    && env \
         IMAGE_TAG="$IMAGE_TAG" \
         RUNID="$RUNID" \
         KUBERNETES_SERVICEACCOUNT="$KUBERNETES_SERVICEACCOUNT" \
