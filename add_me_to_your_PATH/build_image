@@ -64,8 +64,13 @@ fi
     cp "${SCRIPT_DIR}/sysimage.jl" .
 }
 
+[[ -f Manifest.toml.julia_pod ]] || {
+    warn "!!! no Manifest.toml.julia_pod found in ${PWD}, copying Manifest.toml"
+    cp Manifest.toml Manifest.toml.julia_pod
+}
+
 [[ -z "${JULIA_VERSION}" ]] && {
-    JULIA_VERSION=1.6
+    JULIA_VERSION=1.7
     log "JULIA_VERSION environment variable not set, defaulting to ${JULIA_VERSION}"
 }
 
