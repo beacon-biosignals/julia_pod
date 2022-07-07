@@ -67,7 +67,7 @@ Update `add_me_to_your_PATH/accounts.sh` with the following ENV
 vars for your cluster:
 - `KUBERNETES_NAMESPACE`
 - `KUBERNETES_SERVICEACCOUNT`
-- `IMAGE_REPO` -- a docker repo from which container images can be pulled
+- `IMAGE_REPO` -- a docker repo from which container images can be pulled (if using AWS ECR, make sure to include the **entire** URI!)
 
 To give your `julia_pod` access to private packages set the following ENV vars:
 - `PRIVATE_REGISTRY_URL` -- URL to the private Julia package registry
