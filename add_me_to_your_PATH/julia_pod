@@ -161,7 +161,7 @@ log "Generating $DRIVER_YAML" \
         GIT_REPO="$GIT_REPO" \
         GIT_BRANCH="$GIT_BRANCH" \
         GIT_COMMIT="$GIT_COMMIT" \
-        $(command -v envsubst) <driver.yaml.template >$DRIVER_YAML
+        $(command -v envsubst) < "${DRIVER_YAML_TEMPLATE}" >$DRIVER_YAML
 
 # launch job
 kubectl apply -f $DRIVER_YAML -n "$KUBERNETES_NAMESPACE"
