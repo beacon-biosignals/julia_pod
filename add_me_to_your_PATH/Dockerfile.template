@@ -5,7 +5,7 @@ ARG CUDA_VERSION
 
 FROM julia:${JULIA_VERSION}-buster as pinned-extractor
 
-COPY Project.toml Manifest.toml Manifest.toml.julia_pod .
+COPY Project.toml Manifest.toml ./julia_pod/sysimage.packages .
 
 # Remove all packages that are not pinned recursively from the manifest
 # (stdlibs count as pinned)
@@ -14,7 +14,7 @@ RUN julia --project=. -e 'using Pkg;\
                                           if !p.is_tracking_registry]; \
                           registered = [p.name for p in values(Pkg.dependencies()) \
                                         if p.is_tracking_registry]; \
-                          previous = [p.name for p in values(Pkg.Types.read_manifest("Manifest.toml.julia_pod"))]; \
+                          previous = readlines("sysimage.packages"); \
                           rm_deps = union(unregistered, setdiff(registered, previous)); \
                           println("removing $rm_deps"); sleep(1); \
                           isempty(rm_deps) || Pkg.rm(rm_deps; mode=Pkg.PKGMODE_MANIFEST); \
@@ -60,9 +60,13 @@ FROM base as sysimage-image
 # Install system dependencies needed to instantiate the environment and build
 # sysimage. Based on Docker's best practices w.r.t. apt-get:
 # https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
+
+RUN apt-get update && \
+    apt-get install -y gcc && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone --recurse-submodules -j8 https://github.com/julia-vscode/julia-vscode.git /julia-vscode
 
 # Instantiate the Julia project environment
 COPY --from=pinned-extractor *Project.toml *Manifest.toml /JuliaProject/
@@ -70,7 +74,7 @@ COPY --from=pinned-extractor *Project.toml *Manifest.toml /JuliaProject/
 RUN --mount=type=secret,id=github_token \
     julia --project=/JuliaProject -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
 
-COPY sysimage.jl /JuliaProject/sysimage.jl
+COPY ./julia_pod/sysimage.jl /JuliaProject/sysimage.jl
 RUN --mount=type=secret,id=github_token \
     julia --project=/JuliaProject -e 'include("/JuliaProject/sysimage.jl")'
 
@@ -138,8 +142,6 @@ ENV JULIA_PROJECT @.
 
 WORKDIR /JuliaProject
 
-# start julia after repl history gets a chance to sync; is there a better way??
-RUN mkdir -p /root/.julia/config
-RUN echo 'n=8; sleep(n); println("done waiting $n secs for logs/repl_history.jl to sync...")' >> /root/.julia/config/startup.jl
+COPY julia_pod/startup.jl /root/.julia/config/startup.jl
 
 CMD julia

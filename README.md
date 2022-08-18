@@ -170,21 +170,24 @@ time it takes to `using MyProject` your project.
 
 The convention for inclusion into the sysimage is that any
 project dependency that is tracking a registered package is
-included, and a `Manifest.toml.julia_pod` copy of your
-`Manifest.toml` created.
+included, and a `julia_pod/sysimage.packages` list of your
+the dependencies in your `Manifest.toml` created.
 
-If `Manifest.toml.julia_pod` exists (because of a previous
+If `julia_pod/sysimage.packages` exists (because of a previous
 call to `julia_pod`), only the intersection of
 your dependencies and the dependencies in
-`Manifest.toml.julia_pod` will be included in the sysimage.
+`julia_pod/sysimage.packages` will be included in the sysimage.
 This is so that adding packages during a `julia_pod` or
 regular `julia` session against that project environment
 does not invalidate the cache docker uses to build the
 `julia_pod`'s docker image, so that subsequent `julia_pod`
-startup times are fast.
+startup times are fast. Note that removing dependencies
+that are in an existing `julia_pod/sysimage.packages`
+will invalidate the docker build cache the first time
+they are removed, and subsequent builds will be fast.
 
 If you want new packages to be added to the sysimage,
-just `rm Manifest.toml.julia_pod` before running `julia_pod`.
+just `rm julia_pod/sysimage.packages` before running `julia_pod`.
 
 To add packages to your `julia_pod` session without invalidating
 the docker cache, pass in the `preserve=all` option,
@@ -192,10 +195,7 @@ which will not change versions of dependencies that are already
 present when resolving a version for and installing the new
 package, by doing `]add --preserve=all SomeNewPackage`.
 Also, do not do any `Pkg` operations that will change versions
-of existing packages, such as `]up`. Note that calling `]rm`
-to remove packages that have been added since the last
-modification to `Manifest.toml.julia_pod` shouldn't
-invalidate the docker cache.
+of existing packages, such as `]up`.
 
 
 ##### notebooks
