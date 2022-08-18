@@ -34,6 +34,8 @@ nargs="$#"
 
 BUILD_ARGS=""
 
+DRIVER_YAML_TEMPLATE="driver.yaml.template"
+
 # parse args
 while [ -n "$*" ]; do
     if [ "$1" = "--no-sync" ]; then
@@ -44,6 +46,8 @@ while [ -n "$*" ]; do
         PORT_FORWARD=$(echo $1 | cut -c 16-)
     elif [[ "$1" == --julia=* ]]; then
         JULIA_COMMAND=$(echo $1 | cut -c 9-)
+    elif [[ "$1" == --driver-yaml-template=* ]]; then
+        DRIVER_YAML_TEMPLATE=$(echo $1 | cut -c 24-)
     elif [[ "$1" == --runid=* ]]; then
         RUNID=$(echo $1 | cut -c 9-)
     elif [[ "$1" == --build-args=* ]]; then
@@ -108,19 +112,23 @@ RUNID=${RUNID}-"$(openssl rand -hex 3)"
 DRIVER_YAML="driver-${RUNID}.yaml"
 
 # give user a chance to customize `driver.yaml.template` if not found in pwd
-[[ -f driver.yaml.template ]] || {
-    warn "!!! no driver.yaml.template found in ${PWD}, copying ${SCRIPT_DIR}/driver.yaml.template"
-    cp "${SCRIPT_DIR}/driver.yaml.template" .
-    while true; do
-        read -p ">>> View/edit newly copied stock driver.yaml.template k8s pod spec before continuing? [yN] " yn
-        case $yn in
-        [Yy]*)
-            $EDITOR driver.yaml.template
-            break
-            ;;
-        *) break ;;
-        esac
-    done
+[[ -f "${DRIVER_YAML_TEMPLATE}" ]] || {
+    if [[ "${DRIVER_YAML_TEMPLATE}" == "driver.yaml.template" ]]; then
+        warn "!!! no driver.yaml.template found in ${PWD}, copying ${SCRIPT_DIR}/driver.yaml.template"
+        cp "${SCRIPT_DIR}/driver.yaml.template" .
+        while true; do
+            read -p ">>> View/edit newly copied stock driver.yaml.template k8s pod spec before continuing? [yN] " yn
+            case $yn in
+            [Yy]*)
+                $EDITOR driver.yaml.template
+                break
+                ;;
+            *) break ;;
+            esac
+        done
+    else
+        bail "${DRIVER_YAML_TEMPLATE} not found!"
+    fi
 }
 
 # if `julia_pod` was called with args, replace values in `driver.yaml`
