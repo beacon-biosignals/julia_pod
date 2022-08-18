@@ -59,13 +59,11 @@ FROM base as sysimage-image
 # Install system dependencies needed to instantiate the environment and build
 # sysimage. Based on Docker's best practices w.r.t. apt-get:
 # https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
 
 RUN apt-get update && \
     apt-get install -y gcc && \
     rm -rf /var/lib/apt/lists/*
 
-RUN git clone --recurse-submodules -j8 https://github.com/julia-vscode/julia-vscode.git /julia-vscode
 
 # Instantiate the Julia project environment
 COPY --from=sysimage-project *Project.toml *Manifest.toml /JuliaProject/
