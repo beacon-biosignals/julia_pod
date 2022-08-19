@@ -21,12 +21,12 @@ run jobs by doing:
 as `julia_pod`, except the single arg is passed to julia
 as `-e '...'`; this is achieved by appending `-e '...'` to the
 `containers.command` value in the pod spec defined in
-`driver.yaml.template`.
+`julia_pod/driver.yaml.template`.
 
 By default the julia project root and `~/.julia/logs` dirs are 
 synced, even when run with a julia command as arg. To not sync,
 pass in `julia_pod --no-sync [...]`; this will just copy whatever
-the `Dockerfile` has indicated into the docker image build,
+the `julia_pod/Dockerfile` has indicated into the docker image build,
 by default `src/`, `dev/`, `Project.toml` and `Manifest.toml`,
 but not sync your project folder with the container while 
 it is running.
@@ -91,9 +91,9 @@ project, push it to ECR, and run it in the cluster, dropping you
 into a julia REPL.
 
 `--image` lets you pass in a publicly available image name or ECR image 
-tag. If absent, `julia_pod` will look for a `Dockerfile` in your current
-folder to build an image from, and if that's not present it'll use
-`add_me_to_your_PATH/Dockerfile.template`. Note that
+tag. If absent, `julia_pod` will look for a `julia_pod/Dockerfile`
+from your current folder to build an image from, and if that's not
+present it'll use `add_me_to_your_PATH/Dockerfile.template`. Note that
 custom `Dockerfile`s need to be structured
 with the same build stages as `add_me_to_your_PATH/Dockerfile.template`.
 
@@ -114,7 +114,7 @@ based on the git repo and branch names.
 If you do not set this, it will default to `$PROJECT_NAME`.
 
 `--driver-yaml-template=...` lets you specify a k8s pod spec file other than
-the default `driver.yaml.template`.
+the default `julia_pod/driver.yaml.template`.
 
 If no `--image=...` is passed in, `julia_pod` will call `accounts.sh`
 and then `build_image` to build one. For this:
@@ -129,10 +129,10 @@ and then `build_image` to build one. For this:
   repositories, you can provide that secret by storing it in a file and
   specifying the path in the environment variable: `GITHUB_TOKEN_FILE`.
 
-If you do not have a `Dockerfile` or `driver.yaml.template`
+If you do not have a `julia_pod/Dockerfile` or `julia_pod/driver.yaml.template`
 in your julia project root dir, default versions of these will be
 copied over. At this point, you may want to take a look at both of
-these files and edit them, remembering that `driver.yaml.template`
+these files and edit them, remembering that `julia_pod/driver.yaml.template`
 has comments indicating what not to touch;
 in particular, it has `$ALLCAPS` strings that will be replaced
 with runtime values when running `julia_pod`.
@@ -209,7 +209,7 @@ Pluto and ijulia notebooks work from `julia_pod` sessions, as long as:
 - you are port-forwarding from your pet instance to the pod by doing
 
 ```bash
-driver=`ls driver-*.yaml | tail -n 1 | cut -d '.' -f 1`
+driver=`ls julia_pod/driver-*.yaml | tail -n 1 | cut -d '.' -f 1`
 kubectl port-forward pods/$driver 1234:1234 -n project-foo
 ```
 
@@ -225,9 +225,9 @@ traffic will then be passing through both port forwarding hops.)
 ### what it does
 
 `julia_pod` will:
-- copy over `add_me_to_your_PATH/{Dockerfile.template,sysimage.jl,driver.yaml.template}`
-  to the project root dir if those files are absent
-- ask you if you want to `$EDITOR driver.yaml.template`, to for example
+- copy over `add_me_to_your_PATH/{Dockerfile.template,sysimage.jl,driver.yaml.template,startup.jl}`
+  to `julia_pod/` in the project root dir if those files are absent
+- ask you if you want to `$EDITOR julia_pod/driver.yaml.template`, to for example
   request a GPU or other resources
 - compute a descriptive docker image tag of the form
 `${GIT_REPO}_${GIT_BRANCH}_commit-${GIT_COMMIT}_sha1-${PROJECT_ROOTDIR}`

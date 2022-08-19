@@ -64,7 +64,6 @@ RUN apt-get update && \
     apt-get install -y gcc && \
     rm -rf /var/lib/apt/lists/*
 
-
 # Instantiate the Julia project environment
 COPY --from=sysimage-project *Project.toml *Manifest.toml /JuliaProject/
 

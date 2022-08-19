@@ -54,9 +54,10 @@ fi
     bail "no src/ found in $PWD"
 }
 
-[[ -f Dockerfile ]] || {
-    warn "!!! no Dockerfile found in ${PWD}, copying ${SCRIPT_DIR}/Dockerfile.template"
-    cp "${SCRIPT_DIR}/Dockerfile.template" Dockerfile
+[[ -f julia_pod/Dockerfile ]] || {
+    warn "!!! no julia_pod/Dockerfile found in ${PWD}, copying ${SCRIPT_DIR}/Dockerfile.template"
+    mkdir -p julia_pod
+    cp "${SCRIPT_DIR}/Dockerfile.template" julia_pod/Dockerfile
 }
 
 [[ -f julia_pod/sysimage.jl ]] || {
@@ -113,7 +114,8 @@ log "building and pushing sysimage-image with ECR_TAG = $BASE_IMAGE_CACHE"
 
 
 
-docker buildx build --target base \
+docker buildx build -f julia_pod/Dockerfile \
+                    --target base \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
@@ -123,7 +125,8 @@ docker buildx build --target base \
 
 log "building and pushing sysimage-image with ECR_TAG = $SYSIMAGE_IMAGE_CACHE"
 
-docker buildx build --target sysimage-image \
+docker buildx build -f julia_pod/Dockerfile \
+                    --target sysimage-image \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
@@ -134,7 +137,8 @@ docker buildx build --target sysimage-image \
 
 log "building and loading precompile-image with TAG = $PRECOMPILE_IMAGE_CACHE"
 
-docker buildx build --target precompile-image \
+docker buildx build -f julia_pod/Dockerfile \
+                    --target precompile-image \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
@@ -146,7 +150,8 @@ docker buildx build --target precompile-image \
 
 log "building and pushing image with ECR_TAG = $IMAGE_TAG"
 
-docker buildx build --build-arg "BUILDKIT_INLINE_CACHE=1" \
+docker buildx build -f julia_pod/Dockerfile \
+                    --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     --build-arg "JULIA_VERSION=$JULIA_VERSION" \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
                     ${BUILD_ARGS[@]} \
