@@ -59,9 +59,23 @@ fi
     cp "${SCRIPT_DIR}/Dockerfile.template" Dockerfile
 }
 
-[[ -f sysimage.jl ]] || {
+[[ -f julia_pod/sysimage.jl ]] || {
     warn "!!! no sysimage.jl found in ${PWD}, copying ${SCRIPT_DIR}/sysimage.jl"
-    cp "${SCRIPT_DIR}/sysimage.jl" .
+    mkdir -p julia_pod
+    cp "${SCRIPT_DIR}/sysimage.jl" julia_pod
+}
+
+[[ -f julia_pod/startup.jl ]] || {
+    warn "!!! no startup.jl found in ${PWD}, copying ${SCRIPT_DIR}/startup.jl"
+    mkdir -p julia_pod
+    cp "${SCRIPT_DIR}/startup.jl" julia_pod
+}
+
+[[ -f julia_pod/sysimage.packages ]] || {
+    warn "!!! no julia_pod/sysimage.packages found in ${PWD}, generating list of packages to include into sysimage from Manifest.toml"
+    mkdir -p julia_pod
+    # this regex should work for both old and new Manifest.toml formats
+    grep -o '\[\[.*\]\]' Manifest.toml | sed -r 's/\[\[(deps\.)?(.*)\]\]/\2/' > julia_pod/sysimage.packages
 }
 
 [[ -z "${JULIA_VERSION}" ]] && {

@@ -133,7 +133,7 @@ DRIVER_YAML="driver-${RUNID}.yaml"
 
 # if `julia_pod` was called with args, replace values in `driver.yaml`
 [[ -n "${JULIA_COMMAND}" ]] || {
-    JULIA_COMMAND='"julia"'
+    JULIA_COMMAND='"julia", "--startup-file=yes"'
 }
 if [ -n "${args}" ]; then
     # user passed in some julia code to run

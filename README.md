@@ -172,25 +172,33 @@ The default `Dockerfile` used by `julia_pod` is set up to
 time it takes to `using MyProject` your project.
 
 The convention for inclusion into the sysimage is that any
-project dependency that is **pinned** included,
-unless it is blacklisted as a package known not to work with
-`PackageCompiler.jl`. To add the dependency `Example` to the
-sysimage, in a julia REPL `Pkg` mode, do `]pin Example`.
-Pinned packages show with a little ⚲ next to them when listed
-with `]status`.
+project dependency that is tracking a registered package is
+included, and a `julia_pod/sysimage.packages` list of your
+the dependencies in your `Manifest.toml` created.
 
-This convention came about because the package manager `Pkg.jl`
-is not aware of what dependencies are included in the sysimage
-(they are treated as un-versioned dependencies as though they
-were part of the Julia stdlib, and always take precedence over
-whatever dependencies `Pkg.jl` thinks it has added to the
-project). Pinning the packages that are included in the sysimage 
-ensures that the package versions used by `Pkg.jl` are fixed 
-and cannot be accidentally changed. Without pinning a user
-could change the version of a package via Pkg but find that they
-are still only using the version locked into the sysimage.
-This is why it was decided to use pinned packages to control
-what is built into the sysimage.
+If `julia_pod/sysimage.packages` exists (because of a previous
+call to `julia_pod`), only the intersection of
+your dependencies and the dependencies in
+`julia_pod/sysimage.packages` will be included in the sysimage.
+This is so that adding packages during a `julia_pod` or
+regular `julia` session against that project environment
+does not invalidate the cache docker uses to build the
+`julia_pod`'s docker image, so that subsequent `julia_pod`
+startup times are fast. Note that removing dependencies
+that are in an existing `julia_pod/sysimage.packages`
+will invalidate the docker build cache the first time
+they are removed, and subsequent builds will be fast.
+
+If you want new packages to be added to the sysimage,
+just `rm julia_pod/sysimage.packages` before running `julia_pod`.
+
+To add packages to your `julia_pod` session without invalidating
+the docker cache, pass in the `preserve=all` option,
+which will not change versions of dependencies that are already
+present when resolving a version for and installing the new
+package, by doing `]add --preserve=all SomeNewPackage`.
+Also, do not do any `Pkg` operations that will change versions
+of existing packages, such as `]up`.
 
 
 ##### notebooks
