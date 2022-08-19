@@ -74,6 +74,7 @@ fi
 [[ -f julia_pod/sysimage.packages ]] || {
     warn "!!! no julia_pod/sysimage.packages found in ${PWD}, generating list of packages to include into sysimage from Manifest.toml"
     mkdir -p julia_pod
+    # this regex should work for both old and new Manifest.toml formats
     grep -o '\[\[.*\]\]' Manifest.toml | sed -r 's/\[\[(deps\.)?(.*)\]\]/\2/' > julia_pod/sysimage.packages
 }
 
