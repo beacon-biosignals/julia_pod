@@ -34,7 +34,7 @@ nargs="$#"
 
 BUILD_ARGS=""
 
-DRIVER_YAML_TEMPLATE="driver.yaml.template"
+DRIVER_YAML_TEMPLATE="julia_pod/driver.yaml.template"
 
 # parse args
 while [ -n "$*" ]; do
@@ -109,18 +109,18 @@ RUNID="$(echo $RUNID | sed -e 's/[^a-zA-Z0-9]\+/-/g')-$(date +%a%Hh%Mm%S)"
 RUNID="$(echo ${RUNID##*(-)} | tr '[:upper:]' '[:lower:]')"
 RUNID=${RUNID}-"$(openssl rand -hex 3)"
 
-DRIVER_YAML="driver-${RUNID}.yaml"
+DRIVER_YAML="julia_pod/driver-${RUNID}.yaml"
 
-# give user a chance to customize `driver.yaml.template` if not found in pwd
+# give user a chance to customize `julia_pod/driver.yaml.template` if not found in pwd
 [[ -f "${DRIVER_YAML_TEMPLATE}" ]] || {
-    if [[ "${DRIVER_YAML_TEMPLATE}" == "driver.yaml.template" ]]; then
-        warn "!!! no driver.yaml.template found in ${PWD}, copying ${SCRIPT_DIR}/driver.yaml.template"
-        cp "${SCRIPT_DIR}/driver.yaml.template" .
+    if [[ "${DRIVER_YAML_TEMPLATE}" == "julia_pod/driver.yaml.template" ]]; then
+        warn "!!! no julia_pod/driver.yaml.template found in ${PWD}, copying ${SCRIPT_DIR}/driver.yaml.template"
+        cp "${SCRIPT_DIR}/driver.yaml.template" julia_pod/.
         while true; do
-            read -p ">>> View/edit newly copied stock driver.yaml.template k8s pod spec before continuing? [yN] " yn
+            read -p ">>> View/edit newly copied stock julia_pod/driver.yaml.template k8s pod spec before continuing? [yN] " yn
             case $yn in
             [Yy]*)
-                $EDITOR driver.yaml.template
+                $EDITOR julia_pod/driver.yaml.template
                 break
                 ;;
             *) break ;;
