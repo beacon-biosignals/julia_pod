@@ -41,7 +41,7 @@ it is running.
     - `export DOCKER_BUILDKIT=1` and `export DOCKER_CLI_EXPERIMENTAL=enabled` (for example in your .bashrc)
 - make sure your docker is using the `docker` driver and not a `docker-container` driver
   by doing `docker buildx use default` (otherwise re-builds may be slower.)
-- [`devspace`](https://devspace.sh/cli/docs/getting-started/installation) CLI (follow install directions in link)
+- [`devspace`](https://devspace.sh/cli/docs/getting-started/installation) CLI (follow install directions in link) **version 5** (version 6 has breaking CLI changes!)
     > **NOTE**: as of 2021, Nov. 17th using the `npm` directions from the devspace webspace will not work. You need one additional step: `npm i -g yarn`.
 - set your `EDITOR` environment variable to your favorite editor
   (putting this in your shell startup script is generally good idea)
