@@ -115,6 +115,7 @@ DRIVER_YAML="julia_pod/driver-${RUNID}.yaml"
 [[ -f "${DRIVER_YAML_TEMPLATE}" ]] || {
     if [[ "${DRIVER_YAML_TEMPLATE}" == "julia_pod/driver.yaml.template" ]]; then
         warn "!!! no julia_pod/driver.yaml.template found in ${PWD}, copying ${SCRIPT_DIR}/driver.yaml.template"
+        mkdir -p julia_pod
         cp "${SCRIPT_DIR}/driver.yaml.template" julia_pod/.
         while true; do
             read -p ">>> View/edit newly copied stock julia_pod/driver.yaml.template k8s pod spec before continuing? [yN] " yn
