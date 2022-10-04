@@ -108,7 +108,7 @@ fi
 #
 # RUNID will be truncated to 63 - 12 - 7 = 44 characters to make room for these
 # suffixes while still staying within the 63 char limit on k8s names
-RUNID="$(echo $RUNID | cut -c 1-44 | sed -e 's/[^a-zA-Z0-9]\+/-/g')"
+RUNID="$(echo $RUNID | sed -e 's/[^a-zA-Z0-9]\+/-/g' | cut -c 1-44)"
 RUNID="${RUNID}-$(date +%a%Hh%Mm%S)"
 RUNID="$(echo ${RUNID##*(-)} | tr '[:upper:]' '[:lower:]')"
 RUNID=${RUNID}-"$(openssl rand -hex 3)"
