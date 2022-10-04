@@ -105,7 +105,11 @@ fi
 
 # append day/time, both for podname quasi uniqueness and human-friendliness
 # sanitize to be valid dns entry
-RUNID="$(echo $RUNID | sed -e 's/[^a-zA-Z0-9]\+/-/g')-$(date +%a%Hh%Mm%S)"
+#
+# RUNID will be truncated to 63 - 12 - 7 = 44 characters to make room for these
+# suffixes while still staying within the 63 char limit on k8s names
+RUNID="$(echo $RUNID | cut -c 1-44 | sed -e 's/[^a-zA-Z0-9]\+/-/g')"
+RUNID="${RUNID}-$(date +%a%Hh%Mm%S)"
 RUNID="$(echo ${RUNID##*(-)} | tr '[:upper:]' '[:lower:]')"
 RUNID=${RUNID}-"$(openssl rand -hex 3)"
 
