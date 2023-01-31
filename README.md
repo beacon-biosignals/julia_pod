@@ -237,11 +237,11 @@ eval $(minikube docker-env)
 julia_pod --no-push
 ```
 
-Skipping the push step improves startup times after restarting minikube, as minikube`s
+Skipping the push step improves startup times after restarting minikube, as minikube's
 docker will cache all builds and no pushing of several GB to a new dummy registry is
 required.
 However, if you need to run `minikube delete`, the cache will be lost and rebuilding
-takes a lot of times.
+takes a lot of time.
 
 Troubleshooting: The internet connectivity seems to be worse inside minikube. This may lead to
 failures of julia_pod, which a simple retry can successfully solve.
