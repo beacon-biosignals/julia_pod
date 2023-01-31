@@ -228,8 +228,11 @@ traffic will then be passing through both port forwarding hops.)
 
 ##### minikube
 
-Minikube has a [documentation about pushing images](https://minikube.sigs.k8s.io/docs/handbook/pushing/#1-pushing-directly-to-the-in-cluster-docker-daemon-docker-env) to minikube, which actually
-recommends not pushing at all, but building directly inside minikube.
+[Minikube](https://minikube.sigs.k8s.io/docs/) is a tiny Kubernetes which runs on your
+local laptop. Perfect for development and testing.
+
+Minikube has a [documentation about pushing images](https://minikube.sigs.k8s.io/docs/handbook/pushing/#1-pushing-directly-to-the-in-cluster-docker-daemon-docker-env), which actually
+recommends to not push at all, but to build directly inside minikube.
 
 Hence, you typically want to use `--no-push` option, for example
 ```bash
@@ -241,7 +244,8 @@ Skipping the push step improves startup times after restarting minikube, as mini
 docker will cache all builds and no pushing of several GB to a new dummy registry is
 required.
 However, if you need to run `minikube delete`, the cache will be lost and rebuilding
-takes a lot of time.
+takes a lot of time. (Should only be needed very rarely, e.g. when changing overall
+cpus or memory configs.)
 
 Troubleshooting: The internet connectivity seems to be worse inside minikube. This may lead to
 failures of julia_pod, which a simple retry can successfully solve.
