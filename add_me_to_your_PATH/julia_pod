@@ -148,7 +148,7 @@ JULIA_COMMAND="[${JULIA_COMMAND}]"
 echo $JULIA_COMMAND
 
 # generate a k8s secret name
-SECRET_NAME=$(echo "${AWS_USER_ID}" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\+/-/g')
+SECRET_NAME=$(echo "${KUBERNETES_NAMESPACE}_GITHUB_TOKEN_SECRET" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9]\+/-/g')
 
 # pod will fail to start unless secret and key are present. When `GITHUB_TOKEN_FILE` isn't set this will be populated with ""
 echo "GITHUB_TOKEN=$([ -z ${GITHUB_TOKEN_FILE} ] || cat ${GITHUB_TOKEN_FILE})" | kubectl create secret generic $SECRET_NAME --save-config --dry-run=client --from-env-file=/dev/stdin -o yaml | kubectl apply -f -
