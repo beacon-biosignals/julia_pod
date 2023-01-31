@@ -4,31 +4,31 @@
 - is running in a k8s pod
 - is set up for spinning up a K8sClusterManagers cluster
 - has your julia project root and `~/.julia/logs` dirs
-  synced with the running container, 
+  synced with the running container,
   so that if you make changes to your `src/` or `dev/`
   using a local editor
-  or add dependencies to your project 
+  or add dependencies to your project
   from within your julia session, things will just work.
   Julia REPL history will also transfer between local
   julia and julia_pod sessions.
 
 The point of this, beyond making it easier to use a k8s cluster,
-is that your dev env now closely resembles a 
-reproducible/auditable job running env, into which you can 
+is that your dev env now closely resembles a
+reproducible/auditable job running env, into which you can
 run jobs by doing:
 
-`julia_pod '...'` with a single arg, which is set up the same way 
+`julia_pod '...'` with a single arg, which is set up the same way
 as `julia_pod`, except the single arg is passed to julia
 as `-e '...'`; this is achieved by appending `-e '...'` to the
 `containers.command` value in the pod spec defined in
 `julia_pod/driver.yaml.template`.
 
-By default the julia project root and `~/.julia/logs` dirs are 
+By default the julia project root and `~/.julia/logs` dirs are
 synced, even when run with a julia command as arg. To not sync,
 pass in `julia_pod --no-sync [...]`; this will just copy whatever
 the `julia_pod/Dockerfile` has indicated into the docker image build,
 by default `src/`, `dev/`, `Project.toml` and `Manifest.toml`,
-but not sync your project folder with the container while 
+but not sync your project folder with the container while
 it is running.
 
 
@@ -90,7 +90,7 @@ run from a julia project root dir will build a docker image for your
 project, push it to ECR, and run it in the cluster, dropping you
 into a julia REPL.
 
-`--image` lets you pass in a publicly available image name or ECR image 
+`--image` lets you pass in a publicly available image name or ECR image
 tag. If absent, `julia_pod` will look for a `julia_pod/Dockerfile`
 from your current folder to build an image from, and if that's not
 present it'll use `add_me_to_your_PATH/Dockerfile.template`. Note that
@@ -116,6 +116,8 @@ If you do not set this, it will default to `$PROJECT_NAME`.
 `--driver-yaml-template=...` lets you specify a k8s pod spec file other than
 the default `julia_pod/driver.yaml.template`.
 
+`--no-push` disables pushing to the ECR registry.
+
 If no `--image=...` is passed in, `julia_pod` will call `accounts.sh`
 and then `build_image` to build one. For this:
 - your current directory must be a julia project root directory
@@ -137,11 +139,11 @@ has comments indicating what not to touch;
 in particular, it has `$ALLCAPS` strings that will be replaced
 with runtime values when running `julia_pod`.
 
-The first time, and every time you modify your project deps, this will 
+The first time, and every time you modify your project deps, this will
 take some time--building and pushing the docker image can take a while,
 especially if sysimages are involved. However:
 - subsequently it's fairly quick to spin up.
-- you can add deps from within your julia session, and the folder 
+- you can add deps from within your julia session, and the folder
   syncing will mirror them to your local project folder.
 
 ##### Examples
@@ -213,7 +215,7 @@ driver=`ls julia_pod/driver-*.yaml | tail -n 1 | cut -d '.' -f 1`
 kubectl port-forward pods/$driver 1234:1234 -n project-foo
 ```
 
-This grabs the pod name from the last `driver-*.yaml` file written to 
+This grabs the pod name from the last `driver-*.yaml` file written to
 the current directory (`julia_pod` writes a new one for each pod launch)
 and forwards local port 1234 to the pod's 1234 port.
 
@@ -221,6 +223,39 @@ and forwards local port 1234 to the pod's 1234 port.
 machine to the machine you are running `julia_pod` from,
 if those are not one and the same;
 traffic will then be passing through both port forwarding hops.)
+
+### notes on various Kubernetes
+
+##### minikube
+
+[Minikube](https://minikube.sigs.k8s.io/docs/) is a tiny Kubernetes which runs on your
+local laptop. Perfect for development and testing.
+
+Minikube has a [documentation about pushing images](https://minikube.sigs.k8s.io/docs/handbook/pushing/#1-pushing-directly-to-the-in-cluster-docker-daemon-docker-env), which actually
+recommends to not push at all, but to build directly inside minikube.
+
+Hence, you typically want to use `--no-push` option, for example
+```bash
+eval $(minikube docker-env)
+julia_pod --no-push
+```
+
+Skipping the push step improves startup times after restarting minikube, as minikube's
+docker will cache all builds and no pushing of several GB to a new dummy registry is
+required.
+However, if you need to run `minikube delete`, the cache will be lost and rebuilding
+takes a lot of time. (Should only be needed very rarely, e.g. when changing overall
+cpus or memory configs.)
+
+Troubleshooting: The internet connectivity seems to be worse inside minikube. This may lead to
+failures of julia_pod, which a simple retry can successfully solve.
+
+Here an example accounts.sh for use with minikube:
+```bash
+KUBERNETES_NAMESPACE="default"
+KUBERNETES_SERVICEACCOUNT="$KUBERNETES_NAMESPACE"
+IMAGE_REPO="localhost:5000/${KUBERNETES_NAMESPACE}"
+```
 
 ### what it does
 
@@ -232,19 +267,19 @@ traffic will then be passing through both port forwarding hops.)
 - compute a descriptive docker image tag of the form
 `${GIT_REPO}_${GIT_BRANCH}_commit-${GIT_COMMIT}_sha1-${PROJECT_ROOTDIR}`
 - build the docker image
-- push it to our ECR
+- push it to our ECR (unless `--no-push` was passed to `julia_pod`)
 - launch a k8s job containing a single container in a single pod,
   with descriptive names
-- drop you into a julia REPL with the current dir activated 
+- drop you into a julia REPL with the current dir activated
   as the julia project (default Dockerfile uses a sysimage),
-  or if a (single) arg `julia_pod '...'` is passed in, runs the 
+  or if a (single) arg `julia_pod '...'` is passed in, runs the
   corresponding command
 - `devspace sync` your local julia project and `~/.julia/logs` dirs
-  with the corresponding folders in the running container (unless 
+  with the corresponding folders in the running container (unless
   `--no-sync` was passed to `julia_pod`)
 
 The default docker build is optimized for large julia projects that
-take a long time to precompile and that use CUDA. In particular it 
+take a long time to precompile and that use CUDA. In particular it
 is structured in 4 build stages:
 - `base` contains julia + CUDA
 - `sysimage-image` contains a sysimage built from your julia project in such
