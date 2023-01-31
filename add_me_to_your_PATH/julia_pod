@@ -40,6 +40,8 @@ DRIVER_YAML_TEMPLATE="julia_pod/driver.yaml.template"
 while [ -n "$*" ]; do
     if [ "$1" = "--no-sync" ]; then
         SYNC=false
+    elif [ "$1" = "--no-push" ]; then
+        NOPUSH=true
     elif [[ "$1" == --image=* ]]; then
         IMAGE_TAG_ARG=$(echo $1 | cut -c 9-)
     elif [[ "$1" == --port-forward=* ]]; then

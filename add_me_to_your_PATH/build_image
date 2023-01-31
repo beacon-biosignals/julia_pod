@@ -46,6 +46,13 @@ if [[ -n "$PRIVATE_REGISTRY_URL" ]]; then
     BUILD_ARGS+=(--build-arg PRIVATE_REGISTRY_URL="$PRIVATE_REGISTRY_URL")
 fi
 
+if [[ -n "$NOPUSH" ]]; then
+    log "Not pushing to registry."
+else
+    BUILD_ARGS+=(--push)
+fi
+
+
 [[ -f Project.toml ]] || {
     bail "no Project.toml found in $PWD"
 }
@@ -121,7 +128,7 @@ docker buildx build -f julia_pod/Dockerfile \
                     --build-arg "BUILDKIT_INLINE_CACHE=1" \
                     ${BUILD_ARGS[@]} \
                     --cache-from "$BASE_IMAGE_CACHE" \
-                    -t "$BASE_IMAGE_CACHE" --push .
+                    -t "$BASE_IMAGE_CACHE" .
 
 log "building and pushing sysimage-image with ECR_TAG = $SYSIMAGE_IMAGE_CACHE"
 
@@ -133,7 +140,7 @@ docker buildx build -f julia_pod/Dockerfile \
                     ${BUILD_ARGS[@]} \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
-                    -t "$SYSIMAGE_IMAGE_CACHE" --push .
+                    -t "$SYSIMAGE_IMAGE_CACHE" .
 
 log "building and loading precompile-image with TAG = $PRECOMPILE_IMAGE_CACHE"
 
@@ -146,7 +153,7 @@ docker buildx build -f julia_pod/Dockerfile \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     --cache-from "$PRECOMPILE_IMAGE_CACHE" \
-                    -t "$PRECOMPILE_IMAGE_CACHE" --push .
+                    -t "$PRECOMPILE_IMAGE_CACHE" .
 
 log "building and pushing image with ECR_TAG = $IMAGE_TAG"
 
@@ -159,7 +166,7 @@ docker buildx build -f julia_pod/Dockerfile \
                     --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     --cache-from "$PRECOMPILE_IMAGE_CACHE" \
                     --cache-from "$IMAGE_TAG" \
-                    -t "$IMAGE_TAG" --push .
+                    -t "$IMAGE_TAG" .
 
 log "IMAGE_REPO=$IMAGE_REPO"
 log "BASE_IMAGE_CACHE=$BASE_IMAGE_CACHE"
