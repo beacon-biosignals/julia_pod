@@ -23,12 +23,6 @@ spec:
             containers:
                 - name: driver
                   image: '${IMAGE_TAG}'
-                  env:
-                      - name: GITHUB_TOKEN
-                        valueFrom:
-                            secretKeyRef:
-                                name: '${SECRET_NAME}'
-                                key: GITHUB_TOKEN
                   resources:
                       limits:
                           memory: 16Gi
