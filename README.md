@@ -71,7 +71,7 @@ vars for your cluster:
 
 To give your `julia_pod` access to private packages set the following ENV vars:
 - `PRIVATE_REGISTRY_URL` -- URL to the private Julia package registry
-- `GITHUB_TOKEN_FILE` -- Path to a file containing [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) with "repo" scope access.
+- `GITHUB_TOKEN_FILE` -- Path to a file containing [Personal Access Token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) with "repo" scope access. The PAT will only be used to install private Julia packages during build of the Docker image and will not be available from within the container at runtime.
 
 Then just add `add_me_to_your_PATH/` to your path, or call
 `/path/to/add_me_to_your_PATH/julia_pod`.
