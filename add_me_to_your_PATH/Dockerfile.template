@@ -42,7 +42,7 @@ ENV CUDA_HOME /usr/local/cuda
 ENV PYTHON ""
 
 # Install github-token-helper to allow for private repo access via `docker build --secret id=github_token,src=token.txt ...`
-RUN curl -L https://raw.githubusercontent.com/beacon-biosignals/github-token-helper/v0.1.1/github-token-helper -o $HOME/.github-token-helper && \
+RUN curl -L https://raw.githubusercontent.com/beacon-biosignals/github-token-helper/v0.1.2/github-token-helper -o $HOME/.github-token-helper && \
     chmod +x $HOME/.github-token-helper && \
     git config --global credential.https://github.com.helper "$HOME/.github-token-helper -f /run/secrets/github_token"
 
