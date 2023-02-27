@@ -93,7 +93,7 @@ FROM sysimage-image as precompile-image
 ARG ADD_UTILS="true"
 RUN --mount=type=secret,id=github_token \
     if [ "$ADD_UTILS" = "true" ]; then \
-        julia -e 'using Pkg; Pkg.add("Revise"); Pkg.add("PProf"); Pkg.instantiate()'; \
+        julia -e 'using Pkg; Pkg.add("Revise"; preserve=Pkg.PRESERVE_ALL); Pkg.add("PProf"; preserve=Pkg.PRESERVE_ALL); Pkg.instantiate()'; \
     fi
 RUN mkdir -p /root/.julia/config
 
