@@ -19,7 +19,7 @@ if isempty(project.dependencies) || values(project.dependencies) ⊆ keys(Pkg.Ty
     exit(0)
 end
 
-Pkg.add(name="PackageCompiler", version="1")
+Pkg.add(name="PackageCompiler", version="1"; preserve=Pkg.PRESERVE_ALL)
 
 using PackageCompiler, UUIDs
 
