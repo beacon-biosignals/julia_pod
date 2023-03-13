@@ -67,27 +67,14 @@ fi
     cp "${SCRIPT_DIR}/Dockerfile.template" julia_pod/Dockerfile
 }
 
-[[ -f julia_pod/sysimage.jl ]] || {
-    warn "!!! no sysimage.jl found in ${PWD}, copying ${SCRIPT_DIR}/sysimage.jl"
-    mkdir -p julia_pod
-    cp "${SCRIPT_DIR}/sysimage.jl" julia_pod
-}
-
 [[ -f julia_pod/startup.jl ]] || {
     warn "!!! no startup.jl found in ${PWD}, copying ${SCRIPT_DIR}/startup.jl"
     mkdir -p julia_pod
     cp "${SCRIPT_DIR}/startup.jl" julia_pod
 }
 
-[[ -f julia_pod/sysimage.packages ]] || {
-    warn "!!! no julia_pod/sysimage.packages found in ${PWD}, generating list of packages to include into sysimage from Manifest.toml"
-    mkdir -p julia_pod
-    # this regex should work for both old and new Manifest.toml formats
-    grep -o '\[\[.*\]\]' Manifest.toml | sed -r 's/\[\[(deps\.)?(.*)\]\]/\2/' > julia_pod/sysimage.packages
-}
-
 [[ -z "${JULIA_VERSION}" ]] && {
-    JULIA_VERSION=1.7
+    JULIA_VERSION=1.9-rc
     log "JULIA_VERSION environment variable not set, defaulting to ${JULIA_VERSION}"
 }
 
@@ -104,7 +91,6 @@ DEPS_SHA="precompiled-$(sha1sum Project.toml Manifest.toml | sha1sum | head -c7)
 
 # CACHE TAGs, designed to only change if cache images change (can we get a hash from the image itself instead?)
 BASE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_base"
-SYSIMAGE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_sysimage"
 PRECOMPILE_IMAGE_CACHE="${IMAGE_REPO}:${VERSIONS_TAG}_${DEPS_SHA}"
 
 DOCKER_SOURCE_HASH=$(find . -type f \( -exec sha1sum "$PWD"/{} \; \) | grep -v 'driver-' | sort -z | sha1sum | head -c7)
@@ -117,9 +103,7 @@ GIT_INFO="${GIT_REPO}_${GIT_BRANCH}"
 # IMAGE TAGs, designed to be relatable to git coordinates
 IMAGE_TAG="${IMAGE_REPO}:${VERSIONS_TAG}_${GIT_INFO}_commit-${GIT_COMMIT}_sha1-${DOCKER_SOURCE_HASH}"
 
-log "building and pushing sysimage-image with ECR_TAG = $BASE_IMAGE_CACHE"
-
-
+log "building and pushing base-image with ECR_TAG = $BASE_IMAGE_CACHE"
 
 docker buildx build -f julia_pod/Dockerfile \
                     --target base \
@@ -130,18 +114,6 @@ docker buildx build -f julia_pod/Dockerfile \
                     --cache-from "$BASE_IMAGE_CACHE" \
                     -t "$BASE_IMAGE_CACHE" .
 
-log "building and pushing sysimage-image with ECR_TAG = $SYSIMAGE_IMAGE_CACHE"
-
-docker buildx build -f julia_pod/Dockerfile \
-                    --target sysimage-image \
-                    --build-arg "BUILDKIT_INLINE_CACHE=1" \
-                    --build-arg "JULIA_VERSION=$JULIA_VERSION" \
-                    --build-arg "CUDA_VERSION=$CUDA_VERSION" \
-                    ${BUILD_ARGS[@]} \
-                    --cache-from "$BASE_IMAGE_CACHE" \
-                    --cache-from "$SYSIMAGE_IMAGE_CACHE" \
-                    -t "$SYSIMAGE_IMAGE_CACHE" .
-
 log "building and loading precompile-image with TAG = $PRECOMPILE_IMAGE_CACHE"
 
 docker buildx build -f julia_pod/Dockerfile \
@@ -151,7 +123,6 @@ docker buildx build -f julia_pod/Dockerfile \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
                     ${BUILD_ARGS[@]} \
                     --cache-from "$BASE_IMAGE_CACHE" \
-                    --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     --cache-from "$PRECOMPILE_IMAGE_CACHE" \
                     -t "$PRECOMPILE_IMAGE_CACHE" .
 
@@ -163,13 +134,11 @@ docker buildx build -f julia_pod/Dockerfile \
                     --build-arg "CUDA_VERSION=$CUDA_VERSION" \
                     ${BUILD_ARGS[@]} \
                     --cache-from "$BASE_IMAGE_CACHE" \
-                    --cache-from "$SYSIMAGE_IMAGE_CACHE" \
                     --cache-from "$PRECOMPILE_IMAGE_CACHE" \
                     --cache-from "$IMAGE_TAG" \
                     -t "$IMAGE_TAG" .
 
 log "IMAGE_REPO=$IMAGE_REPO"
 log "BASE_IMAGE_CACHE=$BASE_IMAGE_CACHE"
-log "SYSIMAGE_IMAGE_CACHE=$SYSIMAGE_IMAGE_CACHE"
 log "PRECOMPILE_IMAGE_CACHE=$PRECOMPILE_IMAGE_CACHE"
 log "IMAGE_TAG=$IMAGE_TAG"

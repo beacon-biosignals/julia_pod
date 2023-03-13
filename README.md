@@ -140,8 +140,8 @@ in particular, it has `$ALLCAPS` strings that will be replaced
 with runtime values when running `julia_pod`.
 
 The first time, and every time you modify your project deps, this will
-take some time--building and pushing the docker image can take a while,
-especially if sysimages are involved. However:
+take some time--building and pushing the docker image can take a while.
+However:
 - subsequently it's fairly quick to spin up.
 - you can add deps from within your julia session, and the folder
   syncing will mirror them to your local project folder.
@@ -167,32 +167,7 @@ The environmental variable `GITHUB_TOKEN_FILE` specifies path to the
 credentials file used when authenticating.
 
 
-### set your project up for faster load times
-
-The default `Dockerfile` used by `julia_pod` is set up to
-`PackageCompiler.jl` a sysimage for your package to minimize the
-time it takes to `using MyProject` your project.
-
-The convention for inclusion into the sysimage is that any
-project dependency that is tracking a registered package is
-included, and a `julia_pod/sysimage.packages` list of your
-the dependencies in your `Manifest.toml` created.
-
-If `julia_pod/sysimage.packages` exists (because of a previous
-call to `julia_pod`), only the intersection of
-your dependencies and the dependencies in
-`julia_pod/sysimage.packages` will be included in the sysimage.
-This is so that adding packages during a `julia_pod` or
-regular `julia` session against that project environment
-does not invalidate the cache docker uses to build the
-`julia_pod`'s docker image, so that subsequent `julia_pod`
-startup times are fast. Note that removing dependencies
-that are in an existing `julia_pod/sysimage.packages`
-will invalidate the docker build cache the first time
-they are removed, and subsequent builds will be fast.
-
-If you want new packages to be added to the sysimage,
-just `rm julia_pod/sysimage.packages` before running `julia_pod`.
+### cache-friendly package additions
 
 To add packages to your `julia_pod` session without invalidating
 the docker cache, pass in the `preserve=all` option,
@@ -260,7 +235,7 @@ IMAGE_REPO="localhost:5000/${KUBERNETES_NAMESPACE}"
 ### what it does
 
 `julia_pod` will:
-- copy over `add_me_to_your_PATH/{Dockerfile.template,sysimage.jl,driver.yaml.template,startup.jl}`
+- copy over `add_me_to_your_PATH/{Dockerfile.template,driver.yaml.template,startup.jl}`
   to `julia_pod/` in the project root dir if those files are absent
 - ask you if you want to `$EDITOR julia_pod/driver.yaml.template`, to for example
   request a GPU or other resources
@@ -271,7 +246,7 @@ IMAGE_REPO="localhost:5000/${KUBERNETES_NAMESPACE}"
 - launch a k8s job containing a single container in a single pod,
   with descriptive names
 - drop you into a julia REPL with the current dir activated
-  as the julia project (default Dockerfile uses a sysimage),
+  as the julia project,
   or if a (single) arg `julia_pod '...'` is passed in, runs the
   corresponding command
 - `devspace sync` your local julia project and `~/.julia/logs` dirs
@@ -280,15 +255,12 @@ IMAGE_REPO="localhost:5000/${KUBERNETES_NAMESPACE}"
 
 The default docker build is optimized for large julia projects that
 take a long time to precompile and that use CUDA. In particular it
-is structured in 4 build stages:
+is structured in 3 build stages:
 - `base` contains julia + CUDA
-- `sysimage-image` contains a sysimage built from your julia project in such
-  a way as to minimize cache invalidation (only dependencies that
-  will go into the sysimage make it into this build stage)
 - `precompile-image` COPYs in `src/` and `dev/` and precompiles
 - `project` sets up the final image
 The build is structured this way so that subsequent builds can use
 docker layers cached locally, or absent those, use layers from
 these stages cached in the remote docker repository. The first
 build might take some time, but subsequent invocations of `julia_pod`
-from the same julia project should take  less than ~20 seconds.
+from the same julia project should take less than ~20 seconds.

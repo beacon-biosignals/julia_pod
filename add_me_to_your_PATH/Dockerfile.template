@@ -3,26 +3,6 @@ ARG CUDA_VERSION
 
 # Extract Project.toml with pinned deps only + corresponding Manifest.toml
 
-FROM julia:${JULIA_VERSION}-buster as sysimage-project
-
-COPY Project.toml Manifest.toml ./julia_pod/sysimage.packages .
-
-# (stdlibs count as pinned)
-RUN julia --project=. -e 'using Pkg;\
-                          unregistered = [p.name for p in values(Pkg.dependencies()) \
-                                          if !p.is_tracking_registry]; \
-                          registered = [p.name for p in values(Pkg.dependencies()) \
-                                        if p.is_tracking_registry]; \
-                          previous = readlines("sysimage.packages"); \
-                          rm_deps = union(unregistered, setdiff(registered, previous)); \
-                          println("removing $rm_deps"); \
-                          isempty(rm_deps) || Pkg.rm(rm_deps; mode=Pkg.PKGMODE_MANIFEST); \
-                          direct = [p.name for p in values(Pkg.dependencies()) \
-                                          if !p.is_direct_dep]; \
-                          intersect!(rm_deps, direct); \
-                          isempty(rm_deps) || Pkg.rm(rm_deps; mode=Pkg.PKGMODE_PROJECT); \
-                          println(filter(contains(Regex(join(rm_deps, "|"))), readlines("Project.toml")))'
-
 FROM julia:${JULIA_VERSION}-buster as julia-base
 
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04 as base
@@ -53,41 +33,7 @@ RUN --mount=type=secret,id=github_token \
               !isempty(ENV["PRIVATE_REGISTRY_URL"]) && Pkg.Registry.add(RegistrySpec(url=ENV["PRIVATE_REGISTRY_URL"])); \
               Pkg.Registry.add("General")'
 
-
-FROM base as sysimage-image
-
-# Install system dependencies needed to instantiate the environment and build
-# sysimage. Based on Docker's best practices w.r.t. apt-get:
-# https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
-
-RUN apt-get update && \
-    apt-get install -y gcc && \
-    rm -rf /var/lib/apt/lists/*
-
-# Instantiate the Julia project environment
-COPY --from=sysimage-project *Project.toml *Manifest.toml /JuliaProject/
-
-RUN --mount=type=secret,id=github_token \
-    julia --project=/JuliaProject -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
-
-COPY ./julia_pod/sysimage.jl /JuliaProject/sysimage.jl
-RUN --mount=type=secret,id=github_token \
-    julia --project=/JuliaProject -e 'include("/JuliaProject/sysimage.jl")'
-
-RUN --mount=type=secret,id=github_token \
-    julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate()'
-
-#####
-##### sysimage stage (above)
-#####
-# The sysimage stage is designed to be invalidated as infrequently as
-# possible while making a sysimage for faster julia load times.
-# In particular, it only depends on the 'Manifest.toml' containing
-# pinned dependencies only, which by julia_pod convention
-# is the set of dependencies that will go into the sysimage.
-
-
-FROM sysimage-image as precompile-image
+FROM base as precompile-image
 
 # install Revise and PProf, even if not a dep of project
 ARG ADD_UTILS="true"
@@ -112,7 +58,7 @@ RUN --mount=type=secret,id=github_token \
 # invalidation behavior, a slimmer final image.
 # In particular, changing content in
 # `src/` will invalidate the Docker cache for the stage below but will NOT
-# invalidate the stage above, including the slow sysimage creation step.
+# invalidate the stage above
 
 FROM base as project
 
