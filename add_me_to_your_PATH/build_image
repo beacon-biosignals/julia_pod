@@ -74,7 +74,7 @@ fi
 }
 
 [[ -z "${JULIA_VERSION}" ]] && {
-    JULIA_VERSION=1.9.0-rc1
+    JULIA_VERSION=1.9-rc
     log "JULIA_VERSION environment variable not set, defaulting to ${JULIA_VERSION}"
 }
 
