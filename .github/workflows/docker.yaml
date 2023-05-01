@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - add_me_to_your_PATH/Dockerfile.template
+      - add_me_to_your_PATH/sysimage.jl
+      - add_me_to_your_PATH/startup.jl
       - .github/workflows/docker.yaml
 
 # Each PR and each commit on `main` use distinct concurrency groups. Note canceling workflows in
