@@ -121,11 +121,11 @@ RUN --mount=type=secret,id=github_token \
 
 FROM sysimage-image as precompile-image
 
-# install Revise and PProf, even if not a dep of project
+# Optionally install the Revise and PProf packages without adding it to the project
 ARG ADD_UTILS="true"
 RUN --mount=type=secret,id=github_token \
     if [ "$ADD_UTILS" = "true" ]; then \
-        julia -e 'using Pkg; Pkg.add("Revise"; preserve=Pkg.PRESERVE_ALL); Pkg.add("PProf"; preserve=Pkg.PRESERVE_ALL); Pkg.instantiate()'; \
+        JULIA_PROJECT="" julia -e 'using Pkg; Pkg.add(["Revise", "PProf"]; preserve=Pkg.PRESERVE_ALL)'; \
     fi
 RUN mkdir -p /root/.julia/config
 
