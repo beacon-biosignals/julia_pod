@@ -1,34 +1,10 @@
+# syntax=docker/dockerfile:1.4
+
 # Available version numbers can be found here:
 # - JULIA_VERSION: https://hub.docker.com/_/julia/tags?name=-buster&ordering=name
 # - CUDA_VERSION: https://hub.docker.com/r/nvidia/cuda/tags?name=-cudnn8-devel-ubuntu20.04&ordering=name
 ARG JULIA_VERSION
 ARG CUDA_VERSION
-
-#####
-##### `sysimage-project` stage
-#####
-
-FROM julia:${JULIA_VERSION}-buster as sysimage-project
-
-COPY Project.toml Manifest.toml ./julia_pod/sysimage.packages* .
-
-# Generate a Manifest.toml which only includes packages listed in the "sysimage.packages" file
-# and their dependencies. We'll use this minimal package list to avoid invalidating the sysimage
-# generation as much as possible.
-RUN julia --project=. -e 'using Pkg;\
-                          unregistered = [p.name for p in values(Pkg.dependencies()) \
-                                          if !p.is_tracking_registry]; \
-                          registered = [p.name for p in values(Pkg.dependencies()) \
-                                        if p.is_tracking_registry]; \
-                          previous = isfile("sysimage.packages") ? readlines("sysimage.packages") : String[]; \
-                          rm_deps = union(unregistered, setdiff(registered, previous)); \
-                          println("removing $rm_deps"); \
-                          isempty(rm_deps) || Pkg.rm(rm_deps; mode=Pkg.PKGMODE_MANIFEST); \
-                          direct = [p.name for p in values(Pkg.dependencies()) \
-                                          if !p.is_direct_dep]; \
-                          intersect!(rm_deps, direct); \
-                          isempty(rm_deps) || Pkg.rm(rm_deps; mode=Pkg.PKGMODE_PROJECT); \
-                          println(filter(contains(Regex(join(rm_deps, "|"))), readlines("Project.toml")))'
 
 #####
 ##### `julia-base` stage
@@ -76,12 +52,79 @@ RUN curl -sSL https://raw.githubusercontent.com/beacon-biosignals/github-token-h
     chmod +x $HOME/.github-token-helper && \
     git config --global credential.https://github.com.helper "$HOME/.github-token-helper -f /run/secrets/github_token"
 
+# Switch the Julia depot to use the shared cache storage. As `.ji` files reference
+# absolute paths to their included source files care needs to be taken to ensure the depot
+# path used during package precompilation matches the final depot path used in the image.
+# If a source file no longer resides at the expected location the `.ji` is deemed stale and
+# will be recreated.
+RUN ln -s /tmp/julia-cache ~/.julia
+
 # Install the General registry and optionally a private registry
 ARG PRIVATE_REGISTRY_URL=""
-RUN --mount=type=secret,id=github_token \
+RUN --mount=type=cache,sharing=locked,target=/tmp/julia-cache \
+    --mount=type=secret,id=github_token \
     julia -e 'using Pkg; \
               !isempty(ENV["PRIVATE_REGISTRY_URL"]) && Pkg.Registry.add(RegistrySpec(url=ENV["PRIVATE_REGISTRY_URL"])); \
               Pkg.Registry.add("General")'
+
+#####
+##### `deps` stage
+#####
+
+# The sysimage stage is designed to be invalidated as infrequently as
+# possible while making a sysimage for faster Julia load times.
+
+FROM base as deps
+
+# Instantiate the Julia project environment
+ENV JULIA_PROJECT /JuliaProject
+COPY Project.toml Manifest.toml ${JULIA_PROJECT}/
+
+RUN --mount=type=cache,sharing=locked,target=/tmp/julia-cache \
+    --mount=type=secret,id=github_token \
+    julia -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true)'
+
+# Optionally install the Revise and PProf packages without adding it to the project
+ARG ADD_UTILS="true"
+RUN --mount=type=cache,sharing=locked,target=/tmp/julia-cache \
+    --mount=type=secret,id=github_token \
+    if [ "$ADD_UTILS" = "true" ]; then \
+        JULIA_PROJECT="" julia -e 'using Pkg; Pkg.add(["Revise", "PProf"]; preserve=Pkg.PRESERVE_ALL)'; \
+    fi
+
+# Copy the shared ephemeral Julia depot into the image and remove any installed packages
+# not used by our Manifest.toml.
+RUN --mount=type=cache,readonly,target=/tmp/julia-cache \
+    rm ~/.julia && \
+    mkdir ~/.julia && \
+    cp -rp /tmp/julia-cache/* ~/.julia && \
+    julia -e 'using Pkg, Dates; Pkg.gc(collect_delay=Day(0))'
+
+#####
+##### `sysimage-project` stage
+#####
+
+FROM julia-base as sysimage-project
+
+COPY Project.toml Manifest.toml ./julia_pod/sysimage.packages* .
+
+# Generate a Manifest.toml which only includes packages listed in the "sysimage.packages" file
+# and their dependencies. We'll use this minimal package list to avoid invalidating the sysimage
+# generation as much as possible.
+RUN julia --project=. -e 'using Pkg;\
+                          unregistered = [p.name for p in values(Pkg.dependencies()) \
+                                          if !p.is_tracking_registry]; \
+                          registered = [p.name for p in values(Pkg.dependencies()) \
+                                        if p.is_tracking_registry]; \
+                          previous = isfile("sysimage.packages") ? readlines("sysimage.packages") : String[]; \
+                          rm_deps = union(unregistered, setdiff(registered, previous)); \
+                          println("removing $rm_deps"); \
+                          isempty(rm_deps) || Pkg.rm(rm_deps; mode=Pkg.PKGMODE_MANIFEST); \
+                          direct = [p.name for p in values(Pkg.dependencies()) \
+                                    if !p.is_direct_dep]; \
+                          intersect!(rm_deps, direct); \
+                          isempty(rm_deps) || Pkg.rm(rm_deps; mode=Pkg.PKGMODE_PROJECT); \
+                          println(filter(contains(Regex(join(rm_deps, "|"))), readlines("Project.toml")))'
 
 #####
 ##### `sysimage-image` stage
@@ -102,40 +145,17 @@ RUN apt-get -qq update && \
 ENV JULIA_PROJECT /JuliaProject
 COPY --from=sysimage-project Project.toml Manifest.toml ${JULIA_PROJECT}/
 
-RUN --mount=type=secret,id=github_token \
+RUN --mount=type=cache,sharing=locked,target=/tmp/julia-cache \
+    --mount=type=secret,id=github_token \
     julia -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true)'
 
 COPY ./julia_pod/sysimage.jl ${JULIA_PROJECT}/sysimage.jl
 ARG SYSIMAGE="true"
-RUN --mount=type=secret,id=github_token \
+RUN --mount=type=cache,sharing=private,target=/tmp/julia-cache \
+    --mount=type=secret,id=github_token \
     if [ "$SYSIMAGE" = "true" ]; then \
         julia ${JULIA_PROJECT}/sysimage.jl; \
     fi
-
-RUN --mount=type=secret,id=github_token \
-    julia -e 'using Pkg; Pkg.instantiate()'
-
-#####
-##### `precompile-image` stage
-#####
-
-FROM sysimage-image as precompile-image
-
-# Optionally install the Revise and PProf packages without adding it to the project
-ARG ADD_UTILS="true"
-RUN --mount=type=secret,id=github_token \
-    if [ "$ADD_UTILS" = "true" ]; then \
-        JULIA_PROJECT="" julia -e 'using Pkg; Pkg.add(["Revise", "PProf"]; preserve=Pkg.PRESERVE_ALL)'; \
-    fi
-RUN mkdir -p /root/.julia/config
-
-COPY *Project.toml *Manifest.toml ${JULIA_PROJECT}/
-
-# comment out if you don't have any `dev --local` deps
-COPY dev* ${JULIA_PROJECT}/dev/
-
-RUN --mount=type=secret,id=github_token \
-    julia -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true)'
 
 #####
 ##### `project` initialization stage
@@ -151,22 +171,27 @@ FROM base as project
 
 ENV JULIA_PROJECT /JuliaProject
 
-# copy over artifacts generated during the `precompile-image` stage
-COPY --from=precompile-image /JuliaProject/ ${JULIA_PROJECT}/
-COPY --from=precompile-image /root/.julia /root/.julia
-COPY --from=precompile-image /usr/local/julia/lib/julia/sys.* /usr/local/julia/lib/julia/
+COPY --link --from=deps /JuliaProject/ ${JULIA_PROJECT}/
+COPY --link --from=deps /root/.julia /root/.julia
+COPY --from=sysimage-image /usr/local/julia/lib/julia/sys.* /usr/local/julia/lib/julia/
 
-# copy source
-COPY src/ ${JULIA_PROJECT}/src/
+COPY src/ deps/ ${JULIA_PROJECT}/
 
-# final precompilation step
-RUN julia -e 'using Pkg; Pkg.build(); Pkg.precompile(strict=true)'
+# Re-run build if this package requires it. Ideally, we'd just run `Pkg.build($PKG_NAME)`
+RUN if [ -f "$JULIA_PROJECT/deps/build.jl" ]; then \
+        julia -e 'using Pkg; Pkg.build()'; \
+    fi
+
+# Precompile the copied package
+RUN julia -e 'using Pkg; Pkg.precompile(strict=true)'
 
 # copy over all other files without re-running precompile
 COPY . ${JULIA_PROJECT}/
 
-WORKDIR ${JULIA_PROJECT}
-
 COPY julia_pod/startup.jl /root/.julia/config/startup.jl
 
+# comment out if you don't have any `dev --local` deps
+COPY dev* ${JULIA_PROJECT}/dev/
+
+WORKDIR ${JULIA_PROJECT}
 CMD julia
