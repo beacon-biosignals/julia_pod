@@ -96,7 +96,7 @@ ENV JULIA_PROJECT /JuliaProject
 COPY --from=sysimage-project Project.toml Manifest.toml ${JULIA_PROJECT}/
 
 RUN --mount=type=secret,id=github_token \
-    julia -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
+    julia -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true)'
 
 COPY ./julia_pod/sysimage.jl ${JULIA_PROJECT}/sysimage.jl
 RUN --mount=type=secret,id=github_token \
@@ -132,7 +132,7 @@ COPY *Project.toml *Manifest.toml ${JULIA_PROJECT}/
 COPY dev/ ${JULIA_PROJECT}/dev/
 
 RUN --mount=type=secret,id=github_token \
-    julia -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
+    julia -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true)'
 
 #####
 ##### `project` initialization stage
@@ -161,7 +161,7 @@ COPY --from=precompile-image /root/.gitconfig /root/.gitconfig
 COPY src/ ${JULIA_PROJECT}/src/
 
 # final precompilation step
-RUN julia -e 'using Pkg; Pkg.build(); Pkg.precompile()'
+RUN julia -e 'using Pkg; Pkg.build(); Pkg.precompile(strict=true)'
 
 # copy over all other files without re-running precompile
 COPY . ${JULIA_PROJECT}/
