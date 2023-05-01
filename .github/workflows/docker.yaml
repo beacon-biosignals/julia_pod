@@ -30,7 +30,8 @@ jobs:
         run: |
           mkdir julia_pod dev
           echo "Example" >julia_pod/sysimage.packages
-          julia --project=. -e 'using Pkg; Pkg.add(["Example", "Mocking"])'
+          cp add_me_to_your_PATH/sysimage.jl add_me_to_your_PATH/startup.jl julia_pod/
+          JULIA_PKG_PRECOMPILE_AUTO=0 julia --project=. -e 'using Pkg; Pkg.add(["Example", "Mocking"])'
       - name: Build
         uses: docker/build-push-action@v4
         with:
