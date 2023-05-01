@@ -181,7 +181,7 @@ COPY --link --from=deps /JuliaProject/ ${JULIA_PROJECT}/
 COPY --link --from=deps /root/.julia /root/.julia
 COPY --from=sysimage-image /usr/local/julia/lib/julia/sys.* /usr/local/julia/lib/julia/
 
-COPY src/ deps/ ${JULIA_PROJECT}/
+COPY src/ deps*/ ${JULIA_PROJECT}/
 
 # Re-run build if this package requires it. Ideally, we'd just run `Pkg.build($PKG_NAME)`
 RUN if [ -f "$JULIA_PROJECT/deps/build.jl" ]; then \
@@ -197,7 +197,7 @@ COPY . ${JULIA_PROJECT}/
 COPY julia_pod/startup.jl /root/.julia/config/startup.jl
 
 # comment out if you don't have any `dev --local` deps
-COPY dev* ${JULIA_PROJECT}/dev/
+COPY dev*/ ${JULIA_PROJECT}/dev/
 
 WORKDIR ${JULIA_PROJECT}
 CMD julia
