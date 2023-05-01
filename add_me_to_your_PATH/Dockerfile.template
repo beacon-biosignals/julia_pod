@@ -40,8 +40,14 @@ RUN if ! julia --history-file=no -e 'exit(0)'; then \
         exit 1; \
     fi
 
-RUN apt-get update && \
-    apt-get install -y curl git && \
+# Reduces output from `apt-get`
+ENV DEBIAN_FRONTEND noninteractive
+
+# Installing required system packages:
+# - `curl`: Required for installing github-token-helper
+# - `git`: Required for installing github-token-helper
+RUN apt-get -qq update && \
+    apt-get -qq install curl git && \
     rm -rf /var/lib/apt/lists/*
 
 ENV JULIA_CUDA_USE_BINARYBUILDER="false"
@@ -64,12 +70,10 @@ RUN --mount=type=secret,id=github_token \
 
 FROM base as sysimage-image
 
-# Install system dependencies needed to instantiate the environment and build
-# sysimage. Based on Docker's best practices w.r.t. apt-get:
-# https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
-
-RUN apt-get update && \
-    apt-get install -y gcc && \
+# Installing required system packages:
+# - `gcc`: Required for PackageCompiler.jl
+RUN apt-get -qq update && \
+    apt-get -qq install gcc && \
     rm -rf /var/lib/apt/lists/*
 
 # Instantiate the Julia project environment
