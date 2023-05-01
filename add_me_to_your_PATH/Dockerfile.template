@@ -132,7 +132,7 @@ RUN mkdir -p /root/.julia/config
 COPY *Project.toml *Manifest.toml ${JULIA_PROJECT}/
 
 # comment out if you don't have any `dev --local` deps
-COPY dev/ ${JULIA_PROJECT}/dev/
+COPY dev* ${JULIA_PROJECT}/dev/
 
 RUN --mount=type=secret,id=github_token \
     julia -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true)'
