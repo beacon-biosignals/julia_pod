@@ -156,10 +156,6 @@ COPY --from=precompile-image /JuliaProject/ ${JULIA_PROJECT}/
 COPY --from=precompile-image /root/.julia /root/.julia
 COPY --from=precompile-image /usr/local/julia/lib/julia/sys.* /usr/local/julia/lib/julia/
 
-# contains github token, you may want to remove this file
-# but then adding private deps during julia_pod sessions will not work
-COPY --from=precompile-image /root/.gitconfig /root/.gitconfig
-
 # copy source
 COPY src/ ${JULIA_PROJECT}/src/
 
