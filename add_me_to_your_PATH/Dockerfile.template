@@ -27,15 +27,23 @@ FROM julia:${JULIA_VERSION}-buster as julia-base
 
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04 as base
 
-# ubuntu 20.04 is derived from debian buster
+# Ubuntu 20.04 based upon Debian Buster. See `/etc/debian_version` in the Ubuntu image.
 COPY --from=julia-base /usr/local/julia /usr/local/julia
+
+ENV JULIA_PATH /usr/local/julia
+ENV PATH $JULIA_PATH/bin:$PATH
+
+# Validate the architecture of the Julia executable is compatible with the CUDA container.
+RUN if ! julia --history-file=no -e 'exit(0)'; then \
+        uname -m && \
+        readelf -h ${JULIA_PATH}/bin/julia && \
+        exit 1; \
+    fi
 
 RUN apt-get update && \
     apt-get install -y curl git && \
     rm -rf /var/lib/apt/lists/*
 
-ENV JULIA_PATH /usr/local/julia
-ENV PATH $JULIA_PATH/bin:$PATH
 ENV JULIA_CUDA_USE_BINARYBUILDER="false"
 ENV JULIA_DEBUG CUDA
 ENV CUDA_HOME /usr/local/cuda
