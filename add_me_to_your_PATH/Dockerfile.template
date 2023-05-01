@@ -1,3 +1,6 @@
+# Available version numbers can be found here:
+# - JULIA_VERSION: https://hub.docker.com/_/julia/tags?name=-buster&ordering=name
+# - CUDA_VERSION: https://hub.docker.com/r/nvidia/cuda/tags?name=-cudnn8-devel-ubuntu20.04&ordering=name
 ARG JULIA_VERSION
 ARG CUDA_VERSION
 
