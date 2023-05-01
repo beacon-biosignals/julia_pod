@@ -8,12 +8,13 @@ ARG CUDA_VERSION
 ##### `sysimage-project` stage
 #####
 
-# Extract Project.toml with pinned deps only + corresponding Manifest.toml
 FROM julia:${JULIA_VERSION}-buster as sysimage-project
 
 COPY Project.toml Manifest.toml ./julia_pod/sysimage.packages* .
 
-# (stdlibs count as pinned)
+# Generate a Manifest.toml which only includes packages listed in the "sysimage.packages" file
+# and their dependencies. We'll use this minimal package list to avoid invalidating the sysimage
+# generation as much as possible.
 RUN julia --project=. -e 'using Pkg;\
                           unregistered = [p.name for p in values(Pkg.dependencies()) \
                                           if !p.is_tracking_registry]; \
@@ -86,6 +87,9 @@ RUN --mount=type=secret,id=github_token \
 ##### `sysimage-image` stage
 #####
 
+# The sysimage stage is designed to be invalidated as infrequently as
+# possible while making a sysimage for faster Julia load times.
+
 FROM base as sysimage-image
 
 # Installing required system packages:
@@ -114,13 +118,6 @@ RUN --mount=type=secret,id=github_token \
 #####
 ##### `precompile-image` stage
 #####
-
-# The sysimage stage is designed to be invalidated as infrequently as
-# possible while making a sysimage for faster julia load times.
-# In particular, it only depends on the 'Manifest.toml' containing
-# pinned dependencies only, which by julia_pod convention
-# is the set of dependencies that will go into the sysimage.
-
 
 FROM sysimage-image as precompile-image
 
