@@ -105,7 +105,7 @@ COPY ./julia_pod/sysimage.jl ${JULIA_PROJECT}/sysimage.jl
 ARG SYSIMAGE="true"
 RUN --mount=type=secret,id=github_token \
     if [ "$SYSIMAGE" = "true" ]; then \
-        julia -e 'include("/JuliaProject/sysimage.jl")'; \
+        julia ${JULIA_PROJECT}/sysimage.jl; \
     fi
 
 RUN --mount=type=secret,id=github_token \
