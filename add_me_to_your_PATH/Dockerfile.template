@@ -99,8 +99,11 @@ RUN --mount=type=secret,id=github_token \
     julia -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true)'
 
 COPY ./julia_pod/sysimage.jl ${JULIA_PROJECT}/sysimage.jl
+ARG SYSIMAGE="true"
 RUN --mount=type=secret,id=github_token \
-    julia -e 'include("/JuliaProject/sysimage.jl")'
+    if [ "$SYSIMAGE" = "true" ]; then \
+        julia -e 'include("/JuliaProject/sysimage.jl")'; \
+    fi
 
 RUN --mount=type=secret,id=github_token \
     julia -e 'using Pkg; Pkg.instantiate()'
