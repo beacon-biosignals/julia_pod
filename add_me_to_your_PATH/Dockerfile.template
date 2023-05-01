@@ -149,10 +149,16 @@ RUN --mount=type=cache,sharing=locked,target=/tmp/julia-cache \
     --mount=type=secret,id=github_token \
     julia -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true)'
 
+# Install required dependencies for sysimage.jl
+RUN --mount=type=cache,sharing=locked,target=/tmp/julia-cache \
+    --mount=type=secret,id=github_token \
+    julia -e 'using Pkg; Pkg.add(PackageSpec(name="PackageCompiler", version="1"); preserve=Pkg.PRESERVE_ALL)'
+
+# Generate the replacement sysimage. As the system image creation process only performs minor mutations to the
+# cache we'll use "shared" access to improve performance (only the "manifest_usage.toml" is modified).
 COPY ./julia_pod/sysimage.jl ${JULIA_PROJECT}/sysimage.jl
 ARG SYSIMAGE="true"
-RUN --mount=type=cache,sharing=private,target=/tmp/julia-cache \
-    --mount=type=secret,id=github_token \
+RUN --mount=type=cache,sharing=shared,target=/tmp/julia-cache \
     if [ "$SYSIMAGE" = "true" ]; then \
         julia ${JULIA_PROJECT}/sysimage.jl; \
     fi
