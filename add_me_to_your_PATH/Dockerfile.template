@@ -1,8 +1,11 @@
 ARG JULIA_VERSION
 ARG CUDA_VERSION
 
-# Extract Project.toml with pinned deps only + corresponding Manifest.toml
+#####
+##### `sysimage-project` stage
+#####
 
+# Extract Project.toml with pinned deps only + corresponding Manifest.toml
 FROM julia:${JULIA_VERSION}-buster as sysimage-project
 
 COPY Project.toml Manifest.toml ./julia_pod/sysimage.packages .
@@ -23,7 +26,15 @@ RUN julia --project=. -e 'using Pkg;\
                           isempty(rm_deps) || Pkg.rm(rm_deps; mode=Pkg.PKGMODE_PROJECT); \
                           println(filter(contains(Regex(join(rm_deps, "|"))), readlines("Project.toml")))'
 
+#####
+##### `julia-base` stage
+#####
+
 FROM julia:${JULIA_VERSION}-buster as julia-base
+
+#####
+##### `base` stage
+#####
 
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn8-devel-ubuntu20.04 as base
 
@@ -67,6 +78,9 @@ RUN --mount=type=secret,id=github_token \
               !isempty(ENV["PRIVATE_REGISTRY_URL"]) && Pkg.Registry.add(RegistrySpec(url=ENV["PRIVATE_REGISTRY_URL"])); \
               Pkg.Registry.add("General")'
 
+#####
+##### `sysimage-image` stage
+#####
 
 FROM base as sysimage-image
 
@@ -90,8 +104,9 @@ RUN --mount=type=secret,id=github_token \
     julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate()'
 
 #####
-##### sysimage stage (above)
+##### `precompile-image` stage
 #####
+
 # The sysimage stage is designed to be invalidated as infrequently as
 # possible while making a sysimage for faster julia load times.
 # In particular, it only depends on the 'Manifest.toml' containing
@@ -118,8 +133,9 @@ RUN --mount=type=secret,id=github_token \
     julia --project=/JuliaProject -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile()'
 
 #####
-##### project initialization stage
+##### `project` initialization stage
 #####
+
 # By separating this stage out from the previous stages, we achieve nicer cache
 # invalidation behavior, a slimmer final image.
 # In particular, changing content in
