@@ -5,6 +5,7 @@ function main()
 
     # Skip generating a system image when there are no dependencies, or all deps are stdlibs.
     if isempty(project.dependencies) || values(project.dependencies) ⊆ keys(Pkg.Types.stdlibs())
+        @warn "Skipping building sysimage as there are no project dependencies which are not stdlibs"
         exit(0)
     end
 
@@ -18,4 +19,4 @@ function main()
     create_sysimage(packages; replace_default=true, cpu_target = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)")
 end
 
-@time main()
+main()

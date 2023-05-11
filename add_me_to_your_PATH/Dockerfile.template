@@ -71,9 +71,6 @@ RUN --mount=type=cache,sharing=locked,target=/tmp/julia-cache \
 ##### `deps` stage
 #####
 
-# The sysimage stage is designed to be invalidated as infrequently as
-# possible while making a sysimage for faster Julia load times.
-
 FROM base as deps
 
 # Instantiate the Julia project environment
