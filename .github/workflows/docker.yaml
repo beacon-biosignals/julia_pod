@@ -36,7 +36,8 @@ jobs:
               using Pkg;
               Pkg.generate("CITest");
               Pkg.activate("CITest");
-              Pkg.add(["Example", "Mocking"])'
+              Pkg.add(["Example", "Mocking"]);
+              Pkg.develop("Compat"; shared=false);'
           mv CITest/* .
       - name: Build
         uses: docker/build-push-action@v4
